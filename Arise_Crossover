@@ -1,0 +1,969 @@
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+local player = game.Players.LocalPlayer
+-- // // // Services // // // --
+    local VirtualInputManager = game:GetService("VirtualInputManager")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local VirtualUser = game:GetService("VirtualUser")
+    local HttpService = game:GetService("HttpService")
+    local GuiService = game:GetService("GuiService")
+    local RunService = game:GetService("RunService")
+    local Workspace = game:GetService("Workspace")
+    local Players = game:GetService("Players")
+    local CoreGui = game:GetService('StarterGui')
+    local UserInputService = game:GetService('UserInputService')
+
+-- // // // Locals // // // --
+    local LocalPlayer = Players.LocalPlayer
+    local LocalCharacter = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local HumanoidRootPart = LocalCharacter:FindFirstChild("HumanoidRootPart")
+    local TweenService = game:GetService("TweenService")
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+    local plr = game.Players.LocalPlayer
+    local char = plr.Character or plr.CharacterAdded:Wait()
+
+if game.PlaceId == 87039211657390 or game.PlaceId == 128336380114944 then 
+    local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+   local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+    local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+
+    local NameScript = 'Skyx hub [BETA]'
+    local updscrip = '11/03/25 03:30'
+
+    local Window = Fluent:CreateWindow({
+        Title = skyx,
+        SubTitle = "by Skyxhub (v1.0.0) UPD|" .. updscrip,
+        TabWidth = 130,
+        Size = UDim2.fromOffset(550, 330),
+        -- TabWidth = 130,
+        -- Size = UDim2.fromOffset(550, 330),
+        Acrylic = false,
+        Theme = "Amethyst",
+        MinimizeKey = Enum.KeyCode.LeftControl
+    })
+
+    -- ===================== icon ===================== --
+        local screenGui = Instance.new("ScreenGui")
+        local minimizeButton = Instance.new("ImageButton")
+        local buttonCorner = Instance.new("UICorner")
+
+        -- ตั้งชื่อและตั้งค่าของ ScreenGui
+        screenGui.Name = "MobileMinimize"
+        screenGui.Parent = game:GetService("CoreGui")
+        screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+        -- ตั้งค่าของ ImageButton (Minimize Button)
+        minimizeButton.Parent = screenGui
+        minimizeButton.BackgroundColor3 = Color3.new(1.000000, 1.000000, 1.000000)
+        minimizeButton.BorderColor3 = Color3.new(1.000000, 1.000000, 1.000000)
+        minimizeButton.BorderSizePixel = 0
+        minimizeButton.Position = UDim2.new(0,584,0,14)
+
+        -- ตั้งขนาดเริ่มต้นของปุ่ม
+        local originalSize = UDim2.new(0, 45, 0, 45)
+        minimizeButton.Size = originalSize + UDim2.new(0, originalSize.X.Offset * 0.15, 0, originalSize.Y.Offset * 0.15)
+        minimizeButton.Image = "rbxassetid://131642672159441"
+
+        -- เพิ่มมุมโค้งให้กับปุ่ม
+        buttonCorner.CornerRadius = UDim.new(0.2, 0)
+        buttonCorner.Parent = minimizeButton
+
+        -- ตัวแปรสำหรับการลาก
+        local dragging = false
+        local dragInput, touchPos, buttonPos
+
+        -- ฟังก์ชันการเริ่มต้นการลาก
+        minimizeButton.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                touchPos = input.Position
+                buttonPos = minimizeButton.Position
+
+                -- เมื่อการลากสิ้นสุด
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+
+        -- ฟังก์ชันตรวจจับการเคลื่อนไหวของเมาส์/สัมผัส
+        minimizeButton.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+                dragInput = input
+            end
+        end)
+
+        -- ฟังก์ชันการลากปุ่ม
+        game:GetService("UserInputService").InputChanged:Connect(function(input)
+            if input == dragInput and dragging then
+                local delta = input.Position - touchPos
+                minimizeButton.Position = UDim2.new(
+                    buttonPos.X.Scale,
+                    buttonPos.X.Offset + delta.X,
+                    buttonPos.Y.Scale,
+                    buttonPos.Y.Offset + delta.Y
+                )
+            end
+        end)
+
+        -- เมื่อคลิกปุ่มจะให้หน้าต่างย่อ
+        minimizeButton.MouseButton1Click:Connect(function()
+            Window:Minimize()
+        end)
+    -- ===================== icon ===================== --
+
+    function ShowNotification(Content,SubContent)
+        Fluent:Notify({
+            Title = "DENG HUB",
+            Content = Content,
+            SubContent = SubContent,
+            Duration = 2.5
+        })
+    end
+
+    --Fluent provides Lucide Icons https://lucide.dev/icons/ for the tabs, icons are optional
+    local Tabs = {
+        Main = Window:AddTab({ Title = "Main", Icon = "gamepad-2" }),
+        Tools = Window:AddTab({ Title = "Tools", Icon = "wrench" }),
+        Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+    }
+
+    local Options = Fluent.Options
+
+    -- ============================================= Other Code =====================================
+        do -- no delete
+            ShowNotification(NameScript,"Script Update " .. updscrip)
+
+            -- ======== Configuration Variables ======== 
+            -- ======== Configuration Variables ========
+
+            -- ======== Global Flags / Settings ========
+            for _, v in ipairs{
+                "AutoArise", "AutoFarm"
+            } do 
+                _G[v] = false 
+            end
+
+            -- ======== Global Flags / Settings ========
+            
+            -- ==================================== Start Function Group ============================
+                -- ===================================== Function =====================================
+                -- ===================================== Function =====================================
+                -- ===================================== Function =====================================
+                -- ===================================== Function =====================================
+                -- ===================================== Function =====================================
+                -- ===================================== Function =====================================
+                -- ===================================== Function =====================================
+                -- ===================================== Function =====================================
+
+                -- ============================= ลำดับงาน =============================
+                    _G.DebugMode = false
+
+                    VariableIndex = VariableIndex or {
+                        ["AutoFarm"] = false,
+                    }
+                    
+                    VariableTable = VariableTable or {
+                        ["AutoFarm"] = 1,
+                    }
+                    
+                    local function logDebug(message)
+                        if _G.DebugMode then
+                            warn(message)
+                        end
+                    end
+                    
+                    local function GetFirstTask()
+                        local minPriority = math.huge
+                        local firstTask = nil
+                        for key, value in pairs(VariableTable) do
+                            if value < minPriority then
+                                minPriority = value
+                                firstTask = key
+                            end
+                        end
+                        return firstTask
+                    end
+                    
+                    local function IsLowerPriorityTaskActive(PriorityToCheck)
+                        for TaskName, TaskPriority in pairs(VariableTable) do
+                            if TaskPriority < PriorityToCheck and VariableIndex[TaskName] then
+                                logDebug("⛔ Blocked by lower priority task: " .. TaskName)
+                                return true
+                            end
+                        end
+                        return false
+                    end
+                    
+                    local function TaskManager(Variable, Status, Starting)
+                        local FirstTask = GetFirstTask()
+                    
+                        if Status == "Get" then
+                            if Variable == FirstTask and VariableIndex[Variable] then
+                                logDebug("✅ First task (" .. Variable .. ") active.")
+                                return true
+                            end
+                    
+                            if VariableIndex[FirstTask] then
+                                logDebug("⛔ Blocked by first task: " .. FirstTask)
+                                return false
+                            end
+                    
+                            if IsLowerPriorityTaskActive(VariableTable[Variable]) then
+                                logDebug("⛔ Blocked due to active lower priority task.")
+                                return false
+                            end
+                    
+                            logDebug("✅ Task " .. Variable .. " is allowed.")
+                            return VariableIndex[Variable] or false
+                    
+                        elseif Status == "Post" then
+                            VariableIndex[Variable] = Starting
+                            logDebug(Starting and "▶️ Task started: " or "✅ Task ended: " .. Variable)
+                    
+                        elseif Status == "Check" then
+                            logDebug("🔍 Task status check: " .. Variable .. " = " .. tostring(VariableIndex[Variable]))
+                            return VariableIndex[Variable]
+                        end
+                    
+                        return false
+                    end
+                
+                -- ============================= ลำดับงาน =============================
+
+                -- ฟังก์ชันในการเพิ่มเครื่องหมายคั่นพัน
+                    local function formatnum(num)
+                        return string.gsub(num, "(%d)(%d%d%d)$", "%1,%2")  -- ตัวอย่างการใช้เพื่อใส่คั่นพัน
+                    end
+                -- ฟังก์ชันในการเพิ่มเครื่องหมายคั่นพัน
+
+                -- ===== ฟังก์ชันสำหรับส่ง Embed ไปยัง Discord Webhook =====
+                    local function sendToDiscord(title,description,fields,webhookUrl,color,tags_id,useTags)
+                        local Data = {
+                            ["username"] = "Anime Shadow | " .. player.DisplayName  .. "",
+                            ["avatar_url"] = "https://cdn.discordapp.com/attachments/1312405176455532568/1312489885298589757/DENGHUB.png?ex=674caef5&is=674b5d75&hm=3ffc8c4637e1e68cadcda1520a1d041eb12cf68ae8fc5f7f99188d6d36022aec&",
+                            -- ["content"] = "<@" .. tags_id .. ">",
+                            ["embeds"] = {{
+                                -- ["title"] = title,
+                                ["author"] = {
+                                    name = title,
+                                    icon_url = "https://cdn.discordapp.com/attachments/1312405176455532568/1315479584237424712/noFilter_5.webp?ex=67578f55&is=67563dd5&hm=e1b127a7a94b45678500ceadb80875486ee6e5ae65662895e6a76ac11a049b41&"
+                                },
+                                ["description"] = description,
+                                ["color"] = color,
+                                ["fields"] = fields,
+                                ["footer"] = { text = "DENGHUB by Adam | " .. os.date("%d/%m/%Y %H:%M:%S") .. "", icon_url = "https://cdn.discordapp.com/attachments/1312405176455532568/1312489885298589757/DENGHUB.png?ex=674caef5&is=674b5d75&hm=3ffc8c4637e1e68cadcda1520a1d041eb12cf68ae8fc5f7f99188d6d36022aec&" }
+                                -- ["thumbnail"] = {
+                                --     ["url"] = "https://cdn.discordapp.com/attachments/1293684450810396754/1311103839360778280/noFilter.png?ex=6747a41a&is=6746529a&hm=5cee5ff5ff78d513134b000d3cd089ffb2710a5f2c5bf3e74d9b8a6865156ec1&"
+                                -- },
+                                -- ["image"] = {
+                                --     ["url"] = "https://cdn.discordapp.com/attachments/1293684450810396754/1311151209909846017/noFilter.png?ex=6747d038&is=67467eb8&hm=b7790ee47d6e919f84c6f22bc0b173b456165903d71809600f62aac2ceef391c&"
+                                -- }
+                            }}
+                        }
+                        -- เพิ่ม content เฉพาะเมื่อ tags_id ไม่เป็น nil
+                        if useTags and tags_id ~= nil then
+                            Data["content"] = "<@" .. tags_id .. ">"
+                        end
+
+                        local Headers = {["Content-Type"] = "application/json"}
+                        local Encoded = HttpService:JSONEncode(Data)
+                        local Request = http_request or request or HttpPost or syn.request
+                        local Success, Error = pcall(function()
+                            Request({Url = webhookUrl, Body = Encoded, Method = "POST", Headers = Headers})
+                        end)
+                    end
+                -- ===== ฟังก์ชันสำหรับส่ง Embed ไปยัง Discord Webhook =====
+                local Main = Tabs.Main:AddSection("AFK Farm")
+                -- ======== Auto Arise =========
+                    local Arise_Targets = "Capture"
+                    local Dropdown_Arise = Main:AddDropdown("Dropdown_Arise", {
+                        Title = "Select Target Arise",
+                        Values = {"Capture", "Destroy"},
+                        Multi = false,
+                        Default = "Capture",
+                    })
+                    Dropdown_Arise:SetValue("Capture")
+                    Dropdown_Arise:OnChanged(function(Value)
+                        Arise_Targets = Value
+                    end)
+
+                   
+                    local Toggle_AutoArise = Main:AddToggle("MyToggle_AutoArise", { Title = "Auto Arise", Default = false })
+                    Toggle_AutoArise:OnChanged(function()
+                        _G.AutoArise = Toggle_AutoArise.Value
+                    end)
+                    Options.MyToggle_AutoArise:SetValue(false)
+
+                    -- ฟังก์ชัน AriseMonster
+                    local function AriseMonster(Event, monsterID)
+                        if _G.AutoArise and Event then
+                            local args = {
+                                [1] = {
+                                    [1] = {
+                                        ["Event"] = "Enemy" .. Event,
+                                        ["Enemy"] = monsterID
+                                    },
+                                    [2] = "\4"
+                                }
+                            }
+                            -- print("🔄 Arising Monster:", monsterID, "with Event:", Event)
+                            game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+                        end
+                    end
+                -- ======== Auto Arise =========
+
+                -- ======== Auto Farm =======
+                    -- ฟังก์ชันดึงรายการ Pets ที่ติดตั้งอยู่
+                    local function getEquippedPets()
+                        local player = game:GetService("Players").LocalPlayer
+                        local petsContainer = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("__Disable") 
+                            and player.PlayerGui.__Disable:FindFirstChild("Menus") and player.PlayerGui.__Disable.Menus:FindFirstChild("Pets")
+                            and player.PlayerGui.__Disable.Menus.Pets:FindFirstChild("Main") and player.PlayerGui.__Disable.Menus.Pets.Main:FindFirstChild("Container")
+                    
+                        local petsData = {}
+                    
+                        if petsContainer then
+                            for _, pet in ipairs(petsContainer:GetChildren()) do
+                                if pet:IsA("ImageButton") then
+                                    local petName = pet.Name
+                                    local main = pet:FindFirstChild("Main")
+                                    local equipped = main and main:FindFirstChild("Equipped")
+                    
+                                    if equipped and equipped:IsA("ImageLabel") and equipped.Visible then
+                                        petsData[petName] = true
+                                    end
+                                end
+                            end
+                        end
+                        
+                        return petsData
+                    end
+
+                    
+                    -- ฟังก์ชันดึง Monster ที่ใกล้ที่สุด
+                    local function getClosestMonster()
+                        local enemiesFolder = workspace:FindFirstChild("__Main") and workspace.__Main:FindFirstChild("__Enemies") and workspace.__Main.__Enemies:FindFirstChild("Client")
+                        local player = game.Players.LocalPlayer
+                        local character = player and player.Character
+                        local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+
+                        if not humanoidRootPart or not enemiesFolder or not enemiesFolder:IsA("Folder") then
+                            return nil
+                        end
+
+                        local closestMonster = nil
+                        local closestDistance = math.huge
+                        local closestMonsterData = {}
+
+                        for _, monster in pairs(enemiesFolder:GetChildren()) do
+                            if monster:IsA("Model") then
+                                local monsterRoot = monster:FindFirstChild("HumanoidRootPart")
+                                local healthBar = monster:FindFirstChild("HealthBar")
+                                local monsterName = "Unknown"
+                                local monsterID = monster.Name
+                                local monsterHP = "Unknown"
+
+                                if healthBar then
+                                    local main = healthBar:FindFirstChild("Main")
+                                    if main then
+                                        local title = main:FindFirstChild("Title")
+                                        if title and title:IsA("TextLabel") then
+                                            monsterName = title.Text
+                                        end
+
+                                        local bar = main:FindFirstChild("Bar")
+                                        if bar then
+                                            local amount = bar:FindFirstChild("Amount")
+                                            if amount and amount:IsA("TextLabel") then
+                                                monsterHP = amount.Text
+                                            end
+                                        end
+                                    end
+                                end
+
+                                if monsterRoot then
+                                    local distance = (humanoidRootPart.Position - monsterRoot.Position).Magnitude
+                                    if distance < closestDistance then
+                                        closestDistance = distance
+                                        closestMonster = monster
+                                        closestMonsterData = {
+                                            Name = monsterName,
+                                            ID = monsterID,
+                                            HP = monsterHP,
+                                            Position = monsterRoot.Position
+                                        }
+                                    end
+                                end
+                            end
+                        end
+
+                        return closestMonsterData
+                    end
+                    -- ฟังก์ชันให้ Pets โจมตี Monster
+                    local function attackMonster(closestMonsterID, petPositions)
+                        if not closestMonsterID or not petPositions then
+                            -- warn("⚠️ attackMonster: Missing Monster ID or Pet Positions!")
+                            return
+                        end
+
+                        local args = {
+                            [1] = {
+                                [1] = {
+                                    ["PetPos"] = petPositions,
+                                    ["AttackType"] = "All",
+                                    ["Event"] = "Attack",
+                                    ["Enemy"] = closestMonsterID
+                                },
+                                [2] = "\7"
+                            }
+                        }
+
+                        -- print("⚔️ Sending Pets to attack:", closestMonsterID)
+                        game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet2"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+                    end
+
+                    local isAttacking = false
+                    spawn(function()
+                        while true do
+                            wait(0.25)
+
+                            -- ❌ ถ้าปิด AutoFarm ให้หยุดการทำงานทั้งหมด
+                            if not _G.AutoFarm then
+                                if isAttacking then
+                                    -- print("⛔ Stopping Attack: AutoFarm disabled")
+                                    isAttacking = false
+                                end
+                                wait(0.5)
+                                continue
+                            end
+
+                            local closestMonster = getClosestMonster()
+                            local equippedPets = getEquippedPets()
+
+                            -- ✅ ตรวจสอบว่าพบ Monster จริงหรือไม่
+                            if closestMonster and closestMonster.ID then
+                                local player = game.Players.LocalPlayer
+                                local character = player.Character
+                                local humanoidRootPart = character and character:FindFirstChild("HumanoidRootPart")
+
+                                -- ❌ ถ้าผู้เล่นไม่มี HumanoidRootPart ให้ข้ามการทำงาน
+                                if not humanoidRootPart then
+                                    continue
+                                end
+
+                                -- ✅ คำนวณระยะห่างระหว่าง Player และ Monster
+                                local distanceToMonster = (humanoidRootPart.Position - closestMonster.Position).Magnitude
+
+                                -- ❌ ถ้าผู้เล่นอยู่ห่างจาก Monster มากกว่า 15 เมตร → ไม่โจมตี
+                                if distanceToMonster > 15 then
+                                    -- print("🚷 Player is too far from", closestMonster.Name, " | Distance:", distanceToMonster)
+                                    isAttacking = false
+                                    continue
+                                end
+
+                                local hpValue = tonumber(closestMonster.HP:match("[%d%.]+")) or 0
+
+                                -- print("🚀 Closest Monster | Name:", closestMonster.Name, "| ID:", closestMonster.ID, "| Distance:", distanceToMonster, "| HP:", closestMonster.HP)
+
+                                -- ✅ ถ้า Monster ยังมี HP และยังไม่ได้โจมตี → ให้โจมตี
+                                if hpValue > 0 and not isAttacking then
+                                    -- print("✅ Attacking Monster:", closestMonster.Name)
+                                    isAttacking = true
+
+                                    -- สร้างตารางตำแหน่งที่ Pets จะไปยืน
+                                    local petPositions = {}
+                                    local basePos = closestMonster.Position
+                                    local offset = 3
+
+                                    for petID, _ in pairs(equippedPets) do
+                                        petPositions[petID] = basePos + Vector3.new(math.random(-offset, offset), 0, math.random(-offset, offset))
+                                    end
+
+                                    attackMonster(closestMonster.ID, petPositions)
+
+                                -- ❌ ถ้า Monster ตาย → รีเซ็ตการทำงานและเริ่มหา Monster ตัวใหม่
+                                elseif hpValue <= 0 then
+                                    -- print("💀 Monster", closestMonster.Name, "died. Resetting attack system.")
+                                    if _G.AutoArise then
+                                        AriseMonster(Arise_Targets, closestMonster.ID)
+                                    end
+                                    isAttacking = false
+                                end
+                            else
+                                -- ❌ ถ้าไม่มี Monster ให้โจมตี ให้รีเซ็ตสถานะ
+                                isAttacking = false
+                            end
+                        end
+                    end)
+
+                    -- ✅ หยุดโจมตีทันทีเมื่อปิด Toggle
+                    local Toggle_AutoFarm = Main:AddToggle("Toggle_AutoFarm", { Title = "Auto Farm", Default = false })
+                    Toggle_AutoFarm:OnChanged(function()
+                        _G.AutoFarm = Toggle_AutoFarm.Value
+                        if not _G.AutoFarm then
+                            isAttacking = false -- หยุดตีทันที
+                            -- print("⛔ AutoFarm turned off: Stopping attack.")
+                        end
+                    end)
+                    Options.Toggle_AutoFarm:SetValue(false)
+
+                -- ======== Auto Farm =======
+
+                -- ======== Teleport =======
+                    -- 📍 กำหนดตำแหน่งปลายทาง (City, Village, Island, Town)
+                    local locations = {
+                        ["Leveling City"] = Vector3.new(156.59788513183594, 28.27948570251465, -342.618408203125), -- Leveling City
+                        ["Grass Village"] = Vector3.new(-3516.568603515625, 59.03760528564453, 2479.522216796875), -- Grass Village
+                        ["Brum Island"] = Vector3.new(-3006.69140625, 64.56521606445312, -2253.248291015625), -- Brum Island
+                        ["Faceheal Town"] = Vector3.new(2949.715087890625, 50.4575309753418, -2656.518798828125), -- Faceheal Town
+                        ["Mont1"] = Vector3.new(-6170.7802734375, 77.83106994628906, 5438.39013671875),
+                        ["Mont2"] = Vector3.new(466.29296875, 117.56482696533203, 3452.061279296875),
+                        ["Mont3"] = Vector3.new(3302.868896484375, 83.15568542480469, 28.682985305786133),
+                        ["Mont4"] = Vector3.new(4327.86669921875, 118.99542999267578, -4818.9599609375),
+                        ["Mont5"] = Vector3.new(-621.42041015625, 107.75682830810547, -3568.83251953125),
+                        ["Mont6"] = Vector3.new(-5418.4736328125, 107.44157409667969, -5521.29638671875),
+                        ["Mont7"] = Vector3.new(-5881.2021484375, 81.40789031982422, 387.6292724609375)
+                    }
+                    -- 📍 ฟังก์ชันค้นหา Dungeon และดึงตำแหน่ง
+                    local function getDungeonPosition()
+                        local dungeonFolder = workspace:FindFirstChild("__Main") and workspace.__Main:FindFirstChild("__Dungeon")
+
+                        if dungeonFolder and #dungeonFolder:GetChildren() > 0 then
+                            for _, obj in ipairs(dungeonFolder:GetChildren()) do
+                                -- ✅ ถ้าเป็น Model ให้ใช้ WorldPivot
+                                if obj:IsA("Model") then
+                                    print("🏰 Found Dungeon (Model):", obj.Name, "| Position:", obj.WorldPivot.Position)
+                                    return obj.WorldPivot.Position
+                                end
+                                -- ✅ ถ้าเป็น Part ให้ใช้ Position โดยตรง
+                                if obj:IsA("Part") then
+                                    print("🏰 Found Dungeon (Part):", obj.Name, "| Position:", obj.Position)
+                                    return obj.Position
+                                end
+                            end
+                        end
+
+                        print("⚠️ No Dungeon Found!")
+                        return nil
+                    end
+
+                    -- 🔥 ฟังก์ชันทำให้ตัวละคร Tween ไปยังเป้าหมาย
+                    local function tweenFlyTo(targetPosition, speed, onComplete)
+                        if not humanoidRootPart then
+                            warn("⚠️ HumanoidRootPart not found!")
+                            return
+                        end
+
+                        -- ✅ ปิดการชนของ HumanoidRootPart (ทะลุทุกอย่าง)
+                        humanoidRootPart.CanCollide = false
+                        humanoidRootPart.Anchored = true -- ✅ ล็อคตัวละครเพื่อไม่ให้ตก
+
+                        local distance = (humanoidRootPart.Position - targetPosition).Magnitude -- คำนวณระยะทาง
+                        local duration = distance / speed -- คำนวณระยะเวลาตามความเร็ว (s = d/v)
+
+                        -- ตั้งค่า Tween
+                        local tweenInfo = TweenInfo.new(
+                            duration, -- ⏳ ใช้เวลาตามความเร็ว
+                            Enum.EasingStyle.Linear, -- 🚀 ความเร็วคงที่ ไม่มีชะลอ
+                            Enum.EasingDirection.InOut -- ✅ ไม่มีการหน่วง
+                        )
+
+                        local goal = { CFrame = CFrame.new(targetPosition) } -- เคลื่อนที่ไปยังตำแหน่งเป้าหมาย
+
+                        local tween = TweenService:Create(humanoidRootPart, tweenInfo, goal)
+
+                        print("🚀 Flying to:", targetPosition, "| Speed:", speed, "| Estimated time:", duration, "seconds")
+
+                        tween:Play()
+
+                        -- ✅ เมื่อ Tween จบ ให้ปลด Anchor และคืนค่าการชน
+                        tween.Completed:Connect(function()
+                            humanoidRootPart.Anchored = false
+                            humanoidRootPart.CanCollide = true
+                            print("✅ Arrived at:", targetPosition)
+                            if onComplete then
+                                onComplete() -- เรียกฟังก์ชันต่อเมื่อถึงเป้าหมายแล้ว
+                            end
+                        end)
+                    end
+
+                    local Teleport = Tabs.Main:AddSection("Teleport")
+                    local Teleport_Target = "Leveling City"
+                    local Dropdown_tptarget = Teleport:AddDropdown("Dropdown_tptarget", {
+                        Title = "Select Teleport Target",
+                        Values = {"Leveling City", "Grass Village", "Brum Island" , "Faceheal Town" , "Mont1", "Mont2", "Mont3", "Mont4", "Mont5", "Mont6", "Mont7"},
+                        Multi = false,
+                        Default = "Leveling City",
+                    })
+                    Dropdown_tptarget:SetValue("Leveling City")
+                    Dropdown_tptarget:OnChanged(function(Value)
+                        Teleport_Target = Value
+                    end)
+                    -- 🛠 ปุ่มสำหรับ Teleport ไปยังเป้าหมายที่เลือก
+                    Teleport:AddButton({
+                        Title = "Teleport to Target",
+                        Callback = function()
+                            if locations[Teleport_Target] then
+                                tweenFlyTo(locations[Teleport_Target], 500)
+                            else
+                                print("❌ Invalid Teleport Target:", Teleport_Target)
+                            end
+                        end
+                    })
+
+                    -- 🏰 ปุ่มสำหรับ Teleport ไปยังเป้าหมายที่เลือก แล้วไป Dungeon ต่อ
+                    Teleport:AddButton({
+                        Title = "Teleport to Dungeon",
+                        Callback = function()
+                            if locations[Teleport_Target] then
+                                -- ไปที่เป้าหมายก่อน แล้วไป Dungeon ต่อ
+                                tweenFlyTo(locations[Teleport_Target], 500, function()
+                                    local dungeonPosition = getDungeonPosition()
+                                    if dungeonPosition then
+                                        tweenFlyTo(dungeonPosition, 500)
+                                    else
+                                        print("❌ No Dungeon available to travel to!")
+                                    end
+                                end)
+                            else
+                                print("❌ Invalid Teleport Target:", Teleport_Target)
+                            end
+                        end
+                    })
+                -- ======== Teleport =======
+            -- ====================================  Tools  ====================================
+                local Tools_Option = Tabs.Tools:AddSection("Option")
+                Tools_Option:AddButton({
+                    Title = "AntiAFK",
+                    Callback = function()
+                        -- ====== AnitiAFK ======
+                            local vu = game:GetService("VirtualUser")
+                            local ViSendMouseButtonEvent = game:service'VirtualInputManager'
+                            game:GetService("Players").LocalPlayer.Idled:connect(function()
+                                vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+                                task.wait(1)
+                                vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+                            end)
+                            coroutine.resume(coroutine.create(function()
+                                while task.wait() do
+                                    pcall(function() 
+                                        ViSendMouseButtonEvent:SendMouseButtonEvent(795, 595, 0, true, game, 1)
+                                        task.wait(1)
+                                        ViSendMouseButtonEvent:SendMouseButtonEvent(795, 595, 0, false, game, 1)
+                                        task.wait(1000)
+                                    end)
+                                end
+                            end))
+                            game:GetService("Players").LocalPlayer.Idled:connect(function()
+                                local Vector = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2  - (game:GetService("GuiService"):GetGuiInset().Y/2))
+                                vu:Button1Down(Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2  - (game:GetService("GuiService"):GetGuiInset().Y/2)))
+                            end)
+                            game.Players.LocalPlayer.AttributeChanged:Connect(function(n)
+                                if n == "Idle" then
+                                    game.Players.LocalPlayer:SetAttribute("Idle", false)
+                                end
+                            end)
+                        -- ====== AnitiAFK ======
+                    end
+                })
+                
+
+                Tools_Option:AddButton({
+                    Title = "White Screen Enabled ✅",
+                    -- Description = "Click here to Teleport the map.",
+                    Callback = function()
+                        game:GetService("RunService"):Set3dRenderingEnabled(false)
+
+                    end
+                })
+                -- game:GetService("Players").LocalPlayer.PlayerGui.UI.HUD.Notifications.Visible = false
+                Tools_Option:AddButton({
+                    Title = "White Screen Disabled ❌",
+                    -- Description = "Click here to Teleport the map.",
+                    Callback = function()
+                        game:GetService("RunService"):Set3dRenderingEnabled(true)
+                    end
+                })
+                
+                Tools_Option:AddButton({
+                    Title = "Low VFX",
+                    Callback = function()
+                        workspace:FindFirstChildOfClass('Terrain').WaterWaveSize = 0
+                        workspace:FindFirstChildOfClass('Terrain').WaterWaveSpeed = 0
+                        workspace:FindFirstChildOfClass('Terrain').WaterReflectance = 0
+                        workspace:FindFirstChildOfClass('Terrain').WaterTransparency = 0
+                        game:GetService("Lighting").GlobalShadows = false
+                        game:GetService("Lighting").FogEnd = 9e9
+                        settings().Rendering.QualityLevel = 1
+                        for i,v in pairs(workspace:GetDescendants()) do
+                            if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") or v:IsA("CornerWedgePart") or v:IsA("TrussPart") then
+                                v.Material = "Plastic"
+                                v.Reflectance = 0
+                            elseif v:IsA("Decal") then
+                                v.Transparency = 1
+                            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                                v.Lifetime = NumberRange.new(0)
+                            elseif v:IsA("Explosion") then
+                                v.BlastPressure = 1
+                                v.BlastRadius = 1
+                            end
+                        end
+                        for i,v in pairs(game:GetService("Lighting"):GetDescendants()) do
+                            if v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") or v:IsA("BloomEffect") or v:IsA("DepthOfFieldEffect") then
+                                v.Enabled = false
+                            end
+                        end
+                    end
+                })
+                Tools_Option:AddButton({
+                    Title = "BoostFPS",
+                    Callback = function()
+                        local ToDisable = {
+                            Textures = true,
+                            VisualEffects = true,
+                            Parts = true,
+                            Particles = true,
+                            Sky = true
+                        }
+                    
+                        local ToEnable = {
+                            FullBright = false
+                        }
+                    
+                        local Stuff = {}
+                    
+                        for _, v in next, game:GetDescendants() do
+                            if ToDisable.Parts then
+                                if v:IsA("Part") or v:IsA("Union") or v:IsA("BasePart") then
+                                    v.Material = Enum.Material.SmoothPlastic
+                                    table.insert(Stuff, 1, v)
+                                end
+                            end
+                    
+                            if ToDisable.Particles then
+                                if v:IsA("ParticleEmitter") or v:IsA("Smoke") or v:IsA("Explosion") or v:IsA("Sparkles") or v:IsA("Fire") then
+                                    v.Enabled = false
+                                    table.insert(Stuff, 1, v)
+                                end
+                            end
+                    
+                            if ToDisable.VisualEffects then
+                                if v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("DepthOfFieldEffect") or v:IsA("SunRaysEffect") then
+                                    v.Enabled = false
+                                    table.insert(Stuff, 1, v)
+                                end
+                            end
+                    
+                            if ToDisable.Textures then
+                                if v:IsA("Decal") or v:IsA("Texture") then
+                                    v.Texture = ""
+                                    table.insert(Stuff, 1, v)
+                                end
+                            end
+                    
+                            if ToDisable.Sky then
+                                if v:IsA("Sky") then
+                                    v.Parent = nil
+                                    table.insert(Stuff, 1, v)
+                                end
+                            end
+                        end
+                    
+                        game:GetService("TestService"):Message("Effects Disabler Script : Successfully disabled "..#Stuff.." assets / effects. Settings :")
+                    
+                        for i, v in next, ToDisable do
+                            print(tostring(i)..": "..tostring(v))
+                        end
+                    
+                        if ToEnable.FullBright then
+                            local Lighting = game:GetService("Lighting")
+                    
+                            Lighting.FogColor = Color3.fromRGB(255, 255, 255)
+                            Lighting.FogEnd = math.huge
+                            Lighting.FogStart = math.huge
+                            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+                            Lighting.Brightness = 5
+                            Lighting.ColorShift_Bottom = Color3.fromRGB(255, 255, 255)
+                            Lighting.ColorShift_Top = Color3.fromRGB(255, 255, 255)
+                            Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+                            Lighting.Outlines = true
+                        end
+                    end
+                })
+
+                local Tools_Addon = Tabs.Tools:AddSection("Addon")
+                Tools_Addon:AddButton({
+                    Title = "Copy Position",
+                    Callback = function()
+                        setclipboard(tostring(game.Players.LocalPlayer.Character.HumanoidRootPart.Position))
+                    end
+                })
+                Tools_Addon:AddButton({
+                    Title = "Rejoin",
+                    -- Description = "Click here to Teleport the map.",
+                    Callback = function()
+                        local ts = game:GetService("TeleportService") local p = game.Players.LocalPlayer ts:Teleport(game.PlaceId, p) 
+                    end
+                })
+                Tools_Addon:AddButton({
+                    Title = "Hop Server",
+                    -- Description = "Click here to Teleport the map.",
+                    Callback = function()
+                        local PlaceID = game.PlaceId
+                        local AllIDs = {}
+                        local foundAnything = ""
+                        local actualHour = os.date("!*t").hour
+                        local Deleted = false
+                        function TPReturner()
+                            local Site;
+                            if foundAnything == "" then
+                                Site = game.HttpService:JSONDecode(game:HttpGet('https://games.roblox.com/v1/games/' .. PlaceID .. '/servers/Public?sortOrder=Asc&limit=100'))
+                            else
+                                Site = game.HttpService:JSONDecode(game:HttpGet('https://games.roblox.com/v1/games/' .. PlaceID .. '/servers/Public?sortOrder=Asc&limit=100&cursor=' .. foundAnything))
+                            end
+                            local ID = ""
+                            if Site.nextPageCursor and Site.nextPageCursor ~= "null" and Site.nextPageCursor ~= nil then
+                                foundAnything = Site.nextPageCursor
+                            end
+                            local num = 0;
+                            for i,v in pairs(Site.data) do
+                                local Possible = true
+                                ID = tostring(v.id)
+                                if tonumber(v.maxPlayers) > tonumber(v.playing) then
+                                    for _,Existing in pairs(AllIDs) do
+                                        if num ~= 0 then
+                                            if ID == tostring(Existing) then
+                                                Possible = false
+                                            end
+                                        else
+                                            if tonumber(actualHour) ~= tonumber(Existing) then
+                                                local delFile = pcall(function()
+                                                    delfile("NotSameServers.json")
+                                                    AllIDs = {}
+                                                    table.insert(AllIDs, actualHour)
+                                                end)
+                                            end
+                                        end
+                                        num = num + 1
+                                    end
+                                    if Possible == true then
+                                        table.insert(AllIDs, ID)
+                                        wait()
+                                        pcall(function()
+                                            writefile("NotSameServers.json", game:GetService('HttpService'):JSONEncode(AllIDs))
+                                            wait()
+                                            game:GetService("TeleportService"):TeleportToPlaceInstance(PlaceID, ID, game.Players.LocalPlayer)
+                                        end)
+                                        wait(4)
+                                    end
+                                end
+                            end
+                        end
+
+                        function Teleport()
+                            while wait() do
+                                pcall(function()
+                                    TPReturner()
+                                    if foundAnything ~= "" then
+                                        TPReturner()
+                                    end
+                                end)
+                            end
+                        end
+                        Teleport()
+                    end
+                })
+                Tools_Addon:AddButton({
+                    Title = "Copy JobID",
+                    -- Description = "Click here to Teleport the map.",
+                    Callback = function()
+                        setclipboard(game.JobId)
+                    end
+                })
+                local InputJobID = Tools_Addon:AddInput("InputJobID", {
+                    Title = "JobID",
+                    Default = "",
+                    Numeric = false, -- Only allows numbers
+                    Finished = true, -- Only calls callback when you press enter
+                    Callback = function(Value)
+                        JobIdInput = Value 
+                    end
+                })
+                Tools_Addon:AddButton({
+                    Title = "Copy JobID",
+                    Description = "Click here to Join JobID",
+                    Callback = function()
+                        sgame:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, JobIdInput)
+                    end
+                })
+                Tools_Addon:AddButton({
+                    Title = "Close UI",
+                    -- Description = "Click here to Join JobID",
+                    Callback = function()
+                        Fluent:Destroy()
+                    end
+                })
+            -- ====================================  Tools  ====================================
+        
+        end
+    -- ============================================= Other Code End =================================
+        
+
+    SaveManager:SetLibrary(Fluent)
+    InterfaceManager:SetLibrary(Fluent)
+
+    SaveManager:IgnoreThemeSettings()
+
+    SaveManager:SetIgnoreIndexes({})
+
+    InterfaceManager:SetFolder("DENGHUB2025")
+    SaveManager:SetFolder("DENGHUB2025/Arise-Crossover")
+
+    InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+    SaveManager:BuildConfigSection(Tabs.Settings)
+
+    Window:SelectTab(1)
+
+    
+    -- ====== AnitiAFK ======
+        local vu = game:GetService("VirtualUser")
+        local ViSendMouseButtonEvent = game:service'VirtualInputManager'
+        game:GetService("Players").LocalPlayer.Idled:connect(function()
+            vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+            task.wait(1)
+            vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+        end)
+        coroutine.resume(coroutine.create(function()
+            while task.wait() do
+                pcall(function() 
+                    ViSendMouseButtonEvent:SendMouseButtonEvent(795, 595, 0, true, game, 1)
+                    task.wait(1)
+                    ViSendMouseButtonEvent:SendMouseButtonEvent(795, 595, 0, false, game, 1)
+                    task.wait(1000)
+                end)
+            end
+        end))
+        game:GetService("Players").LocalPlayer.Idled:connect(function()
+            local Vector = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2  - (game:GetService("GuiService"):GetGuiInset().Y/2))
+            vu:Button1Down(Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2  - (game:GetService("GuiService"):GetGuiInset().Y/2)))
+        end)
+        game.Players.LocalPlayer.AttributeChanged:Connect(function(n)
+            if n == "Idle" then
+                game.Players.LocalPlayer:SetAttribute("Idle", false)
+            end
+        end)
+    -- ====== AnitiAFK ======
+
+    ShowNotification("The script has been loaded.","")
+    -- You can use the SaveManager:LoadAutoloadConfig() to load a config
+    -- which has been marked to be one that auto loads!
+    SaveManager:LoadAutoloadConfig()
+
+end
