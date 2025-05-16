@@ -1,0 +1,2302 @@
+--[[
+    LAJ HUB v2 - Evade Script
+    Using OrionX UI
+    
+    Features:
+    - Advanced skin changer (play as any character/custom skin)
+    - Entity ESP (see bots through walls)
+    - Player ESP
+    - Auto collect items
+    - Auto revive teammates
+    - Speed and jump modifiers
+    - Fullbright (always see in the dark)
+    - No cooldowns (instant skills)
+    - Anti-ragdoll
+    - Teleports to safe areas
+]]
+
+-- Load the Orion UI Library
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
+
+-- Initialize Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local VirtualUser = game:GetService("VirtualUser")
+local LocalPlayer = Players.LocalPlayer
+
+-- Configuration
+local Config = {
+    -- Entity ESP
+    EntityESP = false,
+    EntityESPColor = Color3.fromRGB(255, 0, 0),
+    EntityDistance = true,
+    
+    -- Player ESP
+    PlayerESP = false,
+    PlayerESPColor = Color3.fromRGB(0, 255, 0),
+    PlayerNames = true,
+    PlayerDistance = true,
+    PlayerHealth = true,
+    
+    -- Skin Changer
+    SkinChanger = false,
+    SelectedSkin = "Dawn",
+    CustomSkinEnabled = false,
+    CustomSkinProps = {
+        HeadColor = Color3.fromRGB(255, 204, 153),
+        TorsoColor = Color3.fromRGB(255, 0, 0),
+        LeftArmColor = Color3.fromRGB(255, 204, 153),
+        RightArmColor = Color3.fromRGB(255, 204, 153),
+        LeftLegColor = Color3.fromRGB(0, 0, 255),
+        RightLegColor = Color3.fromRGB(0, 0, 255),
+        HeadMaterial = Enum.Material.Plastic,
+        BodyMaterial = Enum.Material.Plastic
+    },
+    
+    -- Auto Features
+    AutoCollect = false,
+    AutoRevive = false,
+    
+    -- Character Mods
+    SpeedHack = false,
+    SpeedMultiplier = 2,
+    JumpHack = false,
+    JumpMultiplier = 2,
+    Fullbright = false,
+    NoCooldowns = false,
+    AntiRagdoll = false,
+    AutoCrouch = false,
+    
+    -- Protection
+    AntiAFK = true
+}
+
+-- Create the main window
+local Window = OrionLib:MakeWindow({
+    Name = "LAJ HUB v2 | Evade", 
+    HidePremium = false, 
+    SaveConfig = true, 
+    ConfigFolder = "LAJHUBv2_Evade",
+    IntroEnabled = true,
+    IntroText = "LAJ HUB v2",
+    IntroIcon = "rbxassetid://10618644218",
+    Icon = "rbxassetid://10618644218"
+})
+
+-- Main Tab
+local MainTab = Window:MakeTab({
+    Name = "Main",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local InfoSection = MainTab:AddSection({
+    Name = "Information"
+})
+
+InfoSection:AddParagraph("Welcome to LAJ HUB v2", "The ultimate script for Evade with skin changer, ESP, character mods and more.")
+
+InfoSection:AddButton({
+    Name = "Copy Discord Invite",
+    Callback = function()
+        if setclipboard then
+            setclipboard("https://discord.gg/skyxhub")
+            OrionLib:MakeNotification({
+                Name = "Discord",
+                Content = "Invite link copied to clipboard!",
+                Image = "rbxassetid://4483345998",
+                Time = 5
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Error",
+                Content = "Your executor doesn't support clipboard functions.",
+                Image = "rbxassetid://4483345998",
+                Time = 5
+            })
+        end
+    end
+})
+
+-- Get current game state and map
+local gameState = "Unknown"
+local mapName = "Unknown"
+
+-- Try to get game state from workspace
+if workspace:FindFirstChild("Game") then
+    if workspace.Game:FindFirstChild("GameState") then
+        gameState = workspace.Game.GameState.Value
+    end
+    
+    if workspace.Game:FindFirstChild("MapName") then
+        mapName = workspace.Game.MapName.Value
+    end
+end
+
+InfoSection:AddParagraph("Game State", "State: " .. gameState .. "\nMap: " .. mapName)
+
+-- Update game state when it changes
+if workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("GameState") then
+    workspace.Game.GameState.Changed:Connect(function()
+        InfoSection:AddParagraph("Game State", "State: " .. workspace.Game.GameState.Value .. "\nMap: " .. (workspace.Game:FindFirstChild("MapName") and workspace.Game.MapName.Value or "Unknown"))
+    end)
+end
+
+-- ESP Tab
+local ESPTab = Window:MakeTab({
+    Name = "ESP",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local EntityESPSection = ESPTab:AddSection({
+    Name = "Entity ESP"
+})
+
+-- Entity ESP Toggle
+EntityESPSection:AddToggle({
+    Name = "Entity ESP",
+    Default = false,
+    Flag = "EntityESP",
+    Save = true,
+    Callback = function(Value)
+        Config.EntityESP = Value
+        
+        if Value then
+            EnableEntityESP()
+            OrionLib:MakeNotification({
+                Name = "Entity ESP",
+                Content = "Entity ESP has been enabled",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            DisableEntityESP()
+            OrionLib:MakeNotification({
+                Name = "Entity ESP",
+                Content = "Entity ESP has been disabled",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Entity ESP Color
+EntityESPSection:AddColorpicker({
+    Name = "Entity Color",
+    Default = Color3.fromRGB(255, 0, 0),
+    Flag = "EntityESPColor",
+    Save = true,
+    Callback = function(Value)
+        Config.EntityESPColor = Value
+        UpdateEntityESP()
+    end
+})
+
+-- Show Entity Distance Toggle
+EntityESPSection:AddToggle({
+    Name = "Show Distance",
+    Default = true,
+    Flag = "EntityDistance",
+    Save = true,
+    Callback = function(Value)
+        Config.EntityDistance = Value
+        if Config.EntityESP then
+            UpdateEntityESP()
+        end
+    end
+})
+
+local PlayerESPSection = ESPTab:AddSection({
+    Name = "Player ESP"
+})
+
+-- Player ESP Toggle
+PlayerESPSection:AddToggle({
+    Name = "Player ESP",
+    Default = false,
+    Flag = "PlayerESP",
+    Save = true,
+    Callback = function(Value)
+        Config.PlayerESP = Value
+        
+        if Value then
+            EnablePlayerESP()
+            OrionLib:MakeNotification({
+                Name = "Player ESP",
+                Content = "Player ESP has been enabled",
+                Image = "rbxassetid://4483345998",
+                Time = 3
+            })
+        else
+            DisablePlayerESP()
+            OrionLib:MakeNotification({
+                Name = "Player ESP",
+                Content = "Player ESP has been disabled",
+                Image = "close",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Player ESP Color
+PlayerESPSection:AddColorpicker({
+    Name = "Player Color",
+    Default = Color3.fromRGB(0, 255, 0),
+    Flag = "PlayerESPColor",
+    Save = true,
+    Callback = function(Value)
+        Config.PlayerESPColor = Value
+        UpdatePlayerESP()
+    end
+})
+
+-- Show Player Names Toggle
+PlayerESPSection:AddToggle({
+    Name = "Show Names",
+    Default = true,
+    Flag = "PlayerNames",
+    Save = true,
+    Callback = function(Value)
+        Config.PlayerNames = Value
+        if Config.PlayerESP then
+            UpdatePlayerESP()
+        end
+    end
+})
+
+-- Show Player Distance Toggle
+PlayerESPSection:AddToggle({
+    Name = "Show Distance",
+    Default = true,
+    Flag = "PlayerDistance",
+    Save = true,
+    Callback = function(Value)
+        Config.PlayerDistance = Value
+        if Config.PlayerESP then
+            UpdatePlayerESP()
+        end
+    end
+})
+
+-- Show Player Health Toggle
+PlayerESPSection:AddToggle({
+    Name = "Show Health",
+    Default = true,
+    Flag = "PlayerHealth",
+    Save = true,
+    Callback = function(Value)
+        Config.PlayerHealth = Value
+        if Config.PlayerESP then
+            UpdatePlayerESP()
+        end
+    end
+})
+
+-- Skin Changer Tab
+local SkinTab = Window:MakeTab({
+    Name = "Skin Changer",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local SkinChangerSection = SkinTab:AddSection({
+    Name = "Character Skins"
+})
+
+-- Get all available skins
+local availableSkins = {}
+
+-- Try to find skin models in different locations
+local skinFolder = ReplicatedStorage:FindFirstChild("Skins") or 
+                   ReplicatedStorage:FindFirstChild("Characters") or
+                   ReplicatedStorage:FindFirstChild("PlayerModels")
+
+if skinFolder then
+    for _, skin in pairs(skinFolder:GetChildren()) do
+        if skin:IsA("Model") then
+            table.insert(availableSkins, skin.Name)
+        end
+    end
+else
+    -- Hardcoded common skins in Evade
+    table.insert(availableSkins, "Dawn")
+    table.insert(availableSkins, "Dex")
+    table.insert(availableSkins, "Chip")
+    table.insert(availableSkins, "Ambush")
+    table.insert(availableSkins, "A-60")
+    table.insert(availableSkins, "Seeks")
+    table.insert(availableSkins, "Rush")
+    table.insert(availableSkins, "Smiler")
+end
+
+-- Skin Changer Toggle
+SkinChangerSection:AddToggle({
+    Name = "Skin Changer",
+    Default = false,
+    Flag = "SkinChanger",
+    Save = true,
+    Callback = function(Value)
+        Config.SkinChanger = Value
+        
+        if Value then
+            EnableSkinChanger()
+            OrionLib:MakeNotification({
+                Name = "Skin Changer",
+                Content = "Skin Changer has been enabled",
+                Image = "check",
+                Time = 3
+            })
+        else
+            DisableSkinChanger()
+            OrionLib:MakeNotification({
+                Name = "Skin Changer",
+                Content = "Skin Changer has been disabled",
+                Image = "close",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Selected Skin Dropdown
+SkinChangerSection:AddDropdown({
+    Name = "Select Skin",
+    Default = "Dawn",
+    Flag = "SelectedSkin",
+    Save = true,
+    Options = availableSkins,
+    Callback = function(Value)
+        Config.SelectedSkin = Value
+        if Config.SkinChanger and not Config.CustomSkinEnabled then
+            ChangeSkin(Value)
+        end
+    end
+})
+
+-- Apply Selected Skin Button
+SkinChangerSection:AddButton({
+    Name = "Apply Selected Skin",
+    Callback = function()
+        if Config.SkinChanger and not Config.CustomSkinEnabled then
+            ChangeSkin(Config.SelectedSkin)
+            OrionLib:MakeNotification({
+                Name = "Skin Changer",
+                Content = "Applied skin: " .. Config.SelectedSkin,
+                Image = "check",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Skin Changer",
+                Content = "Please enable Skin Changer first and disable Custom Skin",
+                Image = "warning",
+                Time = 3
+            })
+        end
+    end
+})
+
+local CustomSkinSection = SkinTab:AddSection({
+    Name = "Custom Skin Creator"
+})
+
+-- Custom Skin Toggle
+CustomSkinSection:AddToggle({
+    Name = "Custom Skin",
+    Default = false,
+    Flag = "CustomSkinEnabled",
+    Save = true,
+    Callback = function(Value)
+        Config.CustomSkinEnabled = Value
+        
+        if Value then
+            if Config.SkinChanger then
+                EnableCustomSkin()
+                OrionLib:MakeNotification({
+                    Name = "Custom Skin",
+                    Content = "Custom Skin has been enabled",
+                    Image = "check",
+                    Time = 3
+                })
+            else
+                Config.CustomSkinEnabled = false
+                OrionLib:MakeNotification({
+                    Name = "Custom Skin",
+                    Content = "Please enable Skin Changer first",
+                    Image = "warning",
+                    Time = 3
+                })
+            end
+        else
+            DisableCustomSkin()
+            OrionLib:MakeNotification({
+                Name = "Custom Skin",
+                Content = "Custom Skin has been disabled",
+                Image = "close",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Head Color
+CustomSkinSection:AddColorpicker({
+    Name = "Head Color",
+    Default = Color3.fromRGB(255, 204, 153),
+    Flag = "HeadColor",
+    Save = true,
+    Callback = function(Value)
+        Config.CustomSkinProps.HeadColor = Value
+        if Config.CustomSkinEnabled then
+            UpdateCustomSkin()
+        end
+    end
+})
+
+-- Torso Color
+CustomSkinSection:AddColorpicker({
+    Name = "Torso Color",
+    Default = Color3.fromRGB(255, 0, 0),
+    Flag = "TorsoColor",
+    Save = true,
+    Callback = function(Value)
+        Config.CustomSkinProps.TorsoColor = Value
+        if Config.CustomSkinEnabled then
+            UpdateCustomSkin()
+        end
+    end
+})
+
+-- Arms Color
+CustomSkinSection:AddColorpicker({
+    Name = "Arms Color",
+    Default = Color3.fromRGB(255, 204, 153),
+    Flag = "ArmsColor",
+    Save = true,
+    Callback = function(Value)
+        Config.CustomSkinProps.LeftArmColor = Value
+        Config.CustomSkinProps.RightArmColor = Value
+        if Config.CustomSkinEnabled then
+            UpdateCustomSkin()
+        end
+    end
+})
+
+-- Legs Color
+CustomSkinSection:AddColorpicker({
+    Name = "Legs Color",
+    Default = Color3.fromRGB(0, 0, 255),
+    Flag = "LegsColor",
+    Save = true,
+    Callback = function(Value)
+        Config.CustomSkinProps.LeftLegColor = Value
+        Config.CustomSkinProps.RightLegColor = Value
+        if Config.CustomSkinEnabled then
+            UpdateCustomSkin()
+        end
+    end
+})
+
+-- Material Dropdown
+CustomSkinSection:AddDropdown({
+    Name = "Body Material",
+    Default = "Plastic",
+    Flag = "BodyMaterial",
+    Save = true,
+    Options = {"Plastic", "Metal", "Neon", "Glass", "ForceField", "Foil"},
+    Callback = function(Value)
+        local materialMap = {
+            Plastic = Enum.Material.Plastic,
+            Metal = Enum.Material.Metal,
+            Neon = Enum.Material.Neon,
+            Glass = Enum.Material.Glass,
+            ForceField = Enum.Material.ForceField,
+            Foil = Enum.Material.Foil
+        }
+        
+        Config.CustomSkinProps.BodyMaterial = materialMap[Value]
+        Config.CustomSkinProps.HeadMaterial = materialMap[Value]
+        
+        if Config.CustomSkinEnabled then
+            UpdateCustomSkin()
+        end
+    end
+})
+
+-- Apply Custom Skin Button
+CustomSkinSection:AddButton({
+    Name = "Apply Custom Skin",
+    Callback = function()
+        if Config.SkinChanger and Config.CustomSkinEnabled then
+            EnableCustomSkin()
+            OrionLib:MakeNotification({
+                Name = "Custom Skin",
+                Content = "Applied custom skin",
+                Image = "check",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Custom Skin",
+                Content = "Please enable Skin Changer and Custom Skin first",
+                Image = "warning",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Features Tab
+local FeaturesTab = Window:MakeTab({
+    Name = "Features",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local AutoSection = FeaturesTab:AddSection({
+    Name = "Auto Features"
+})
+
+-- Auto Collect Toggle
+AutoSection:AddToggle({
+    Name = "Auto Collect Items",
+    Default = false,
+    Flag = "AutoCollect",
+    Save = true,
+    Callback = function(Value)
+        Config.AutoCollect = Value
+        
+        if Value then
+            EnableAutoCollect()
+            OrionLib:MakeNotification({
+                Name = "Auto Collect",
+                Content = "Auto Collect has been enabled",
+                Image = "check",
+                Time = 3
+            })
+        else
+            DisableAutoCollect()
+            OrionLib:MakeNotification({
+                Name = "Auto Collect",
+                Content = "Auto Collect has been disabled",
+                Image = "close",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Auto Revive Toggle
+AutoSection:AddToggle({
+    Name = "Auto Revive Teammates",
+    Default = false,
+    Flag = "AutoRevive",
+    Save = true,
+    Callback = function(Value)
+        Config.AutoRevive = Value
+        
+        if Value then
+            EnableAutoRevive()
+            OrionLib:MakeNotification({
+                Name = "Auto Revive",
+                Content = "Auto Revive has been enabled",
+                Image = "check",
+                Time = 3
+            })
+        else
+            DisableAutoRevive()
+            OrionLib:MakeNotification({
+                Name = "Auto Revive",
+                Content = "Auto Revive has been disabled",
+                Image = "close",
+                Time = 3
+            })
+        end
+    end
+})
+
+local UtilitySection = FeaturesTab:AddSection({
+    Name = "Utility"
+})
+
+-- Fullbright Toggle
+UtilitySection:AddToggle({
+    Name = "Fullbright",
+    Default = false,
+    Flag = "Fullbright",
+    Save = true,
+    Callback = function(Value)
+        Config.Fullbright = Value
+        
+        if Value then
+            EnableFullbright()
+            OrionLib:MakeNotification({
+                Name = "Fullbright",
+                Content = "Fullbright has been enabled",
+                Image = "check",
+                Time = 3
+            })
+        else
+            DisableFullbright()
+            OrionLib:MakeNotification({
+                Name = "Fullbright",
+                Content = "Fullbright has been disabled",
+                Image = "close",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- No Cooldowns Toggle
+UtilitySection:AddToggle({
+    Name = "No Cooldowns",
+    Default = false,
+    Flag = "NoCooldowns",
+    Save = true,
+    Callback = function(Value)
+        Config.NoCooldowns = Value
+        
+        if Value then
+            EnableNoCooldowns()
+            OrionLib:MakeNotification({
+                Name = "No Cooldowns",
+                Content = "No Cooldowns has been enabled",
+                Image = "check",
+                Time = 3
+            })
+        else
+            DisableNoCooldowns()
+            OrionLib:MakeNotification({
+                Name = "No Cooldowns",
+                Content = "No Cooldowns has been disabled",
+                Image = "close",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Anti-Ragdoll Toggle
+UtilitySection:AddToggle({
+    Name = "Anti-Ragdoll",
+    Default = false,
+    Flag = "AntiRagdoll",
+    Save = true,
+    Callback = function(Value)
+        Config.AntiRagdoll = Value
+        
+        if Value then
+            EnableAntiRagdoll()
+            OrionLib:MakeNotification({
+                Name = "Anti-Ragdoll",
+                Content = "Anti-Ragdoll has been enabled",
+                Image = "check",
+                Time = 3
+            })
+        else
+            DisableAntiRagdoll()
+            OrionLib:MakeNotification({
+                Name = "Anti-Ragdoll",
+                Content = "Anti-Ragdoll has been disabled",
+                Image = "close",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Auto Crouch Toggle (for dodging monsters)
+UtilitySection:AddToggle({
+    Name = "Auto Crouch Near Entities",
+    Default = false,
+    Flag = "AutoCrouch",
+    Save = true,
+    Callback = function(Value)
+        Config.AutoCrouch = Value
+        
+        if Value then
+            EnableAutoCrouch()
+            OrionLib:MakeNotification({
+                Name = "Auto Crouch",
+                Content = "Auto Crouch has been enabled",
+                Image = "check",
+                Time = 3
+            })
+        else
+            DisableAutoCrouch()
+            OrionLib:MakeNotification({
+                Name = "Auto Crouch",
+                Content = "Auto Crouch has been disabled",
+                Image = "close",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Character Tab
+local CharacterTab = Window:MakeTab({
+    Name = "Character",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local MovementSection = CharacterTab:AddSection({
+    Name = "Movement"
+})
+
+-- Speed Hack Toggle
+MovementSection:AddToggle({
+    Name = "Speed Hack",
+    Default = false,
+    Flag = "SpeedHack",
+    Save = true,
+    Callback = function(Value)
+        Config.SpeedHack = Value
+        
+        if Value then
+            EnableSpeedHack()
+            OrionLib:MakeNotification({
+                Name = "Speed Hack",
+                Content = "Speed Hack has been enabled",
+                Image = "check",
+                Time = 3
+            })
+        else
+            DisableSpeedHack()
+            OrionLib:MakeNotification({
+                Name = "Speed Hack",
+                Content = "Speed Hack has been disabled",
+                Image = "close",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Speed Multiplier Slider
+MovementSection:AddSlider({
+    Name = "Speed Multiplier",
+    Min = 1,
+    Max = 5,
+    Default = 2,
+    Color = Color3.fromRGB(46, 109, 188),
+    Increment = 0.1,
+    Flag = "SpeedMultiplier",
+    Save = true,
+    ValueName = "x",
+    Callback = function(Value)
+        Config.SpeedMultiplier = Value
+        if Config.SpeedHack then
+            UpdateSpeedHack()
+        end
+    end
+})
+
+-- Jump Hack Toggle
+MovementSection:AddToggle({
+    Name = "Jump Hack",
+    Default = false,
+    Flag = "JumpHack",
+    Save = true,
+    Callback = function(Value)
+        Config.JumpHack = Value
+        
+        if Value then
+            EnableJumpHack()
+            OrionLib:MakeNotification({
+                Name = "Jump Hack",
+                Content = "Jump Hack has been enabled",
+                Image = "check",
+                Time = 3
+            })
+        else
+            DisableJumpHack()
+            OrionLib:MakeNotification({
+                Name = "Jump Hack",
+                Content = "Jump Hack has been disabled",
+                Image = "close",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Jump Multiplier Slider
+MovementSection:AddSlider({
+    Name = "Jump Multiplier",
+    Min = 1,
+    Max = 5,
+    Default = 2,
+    Color = Color3.fromRGB(46, 109, 188),
+    Increment = 0.1,
+    Flag = "JumpMultiplier",
+    Save = true,
+    ValueName = "x",
+    Callback = function(Value)
+        Config.JumpMultiplier = Value
+        if Config.JumpHack then
+            UpdateJumpHack()
+        end
+    end
+})
+
+-- Teleport Tab
+local TeleportTab = Window:MakeTab({
+    Name = "Teleport",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local SafeZonesSection = TeleportTab:AddSection({
+    Name = "Safe Zones"
+})
+
+-- Try to find all maps and their safe zones
+local safeZones = {}
+
+-- Add safe zones for specific maps (based on Evade game knowledge)
+if mapName == "Abandoned Prison" or workspace:FindFirstChild("Abandoned Prison") then
+    table.insert(safeZones, "Cafeteria")
+    table.insert(safeZones, "Guard Room")
+    table.insert(safeZones, "Cell Block")
+    table.insert(safeZones, "Yard")
+elseif mapName == "Factory" or workspace:FindFirstChild("Factory") then
+    table.insert(safeZones, "Office")
+    table.insert(safeZones, "Warehouse")
+    table.insert(safeZones, "Control Room")
+    table.insert(safeZones, "Loading Bay")
+elseif mapName == "Mansion" or workspace:FindFirstChild("Mansion") then
+    table.insert(safeZones, "Master Bedroom")
+    table.insert(safeZones, "Dining Room")
+    table.insert(safeZones, "Kitchen")
+    table.insert(safeZones, "Library")
+    table.insert(safeZones, "Garden")
+else
+    -- Generic safe zones that might exist in any map
+    table.insert(safeZones, "Safe Room")
+    table.insert(safeZones, "Spawn")
+    table.insert(safeZones, "Lobby")
+    table.insert(safeZones, "Starting Area")
+end
+
+-- Teleport To Safe Zone Dropdown
+SafeZonesSection:AddDropdown({
+    Name = "Select Safe Zone",
+    Default = safeZones[1] or "No safe zones found",
+    Flag = "SelectedSafeZone",
+    Save = false,
+    Options = safeZones,
+    Callback = function(Value)
+        -- Store selected safe zone
+        _G.SelectedSafeZone = Value
+    end
+})
+
+-- Teleport Button
+SafeZonesSection:AddButton({
+    Name = "Teleport to Safe Zone",
+    Callback = function()
+        if _G.SelectedSafeZone then
+            TeleportToSafeZone(_G.SelectedSafeZone)
+        else
+            OrionLib:MakeNotification({
+                Name = "Teleport",
+                Content = "No safe zone selected",
+                Image = "warning",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Add buttons for each safe zone for quick teleport
+for _, zone in pairs(safeZones) do
+    SafeZonesSection:AddButton({
+        Name = "Teleport to " .. zone,
+        Callback = function()
+            TeleportToSafeZone(zone)
+        end
+    })
+end
+
+local PlayerTeleportSection = TeleportTab:AddSection({
+    Name = "Player Teleports"
+})
+
+-- Get player list
+local playerList = {}
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        table.insert(playerList, player.Name)
+    end
+end
+
+-- Player teleport dropdown
+PlayerTeleportSection:AddDropdown({
+    Name = "Select Player",
+    Default = playerList[1] or "No players",
+    Flag = "SelectedPlayer",
+    Save = false,
+    Options = playerList,
+    Callback = function(Value)
+        -- Store selected player
+        _G.SelectedPlayer = Value
+    end
+})
+
+-- Teleport to selected player button
+PlayerTeleportSection:AddButton({
+    Name = "Teleport to Player",
+    Callback = function()
+        if _G.SelectedPlayer then
+            local targetPlayer = Players:FindFirstChild(_G.SelectedPlayer)
+            if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character:SetPrimaryPartCFrame(targetPlayer.Character.HumanoidRootPart.CFrame)
+                
+                OrionLib:MakeNotification({
+                    Name = "Teleport",
+                    Content = "Teleported to " .. _G.SelectedPlayer,
+                    Image = "teleport",
+                    Time = 3
+                })
+            else
+                OrionLib:MakeNotification({
+                    Name = "Teleport",
+                    Content = "Could not teleport to " .. _G.SelectedPlayer,
+                    Image = "warning",
+                    Time = 3
+                })
+            end
+        else
+            OrionLib:MakeNotification({
+                Name = "Teleport",
+                Content = "No player selected",
+                Image = "warning",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Protection Tab
+local ProtectionTab = Window:MakeTab({
+    Name = "Protection",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+local AntiSection = ProtectionTab:AddSection({
+    Name = "Anti-Detection"
+})
+
+-- Anti-AFK Toggle
+AntiSection:AddToggle({
+    Name = "Anti-AFK",
+    Default = true,
+    Flag = "AntiAFK",
+    Save = true,
+    Callback = function(Value)
+        Config.AntiAFK = Value
+        
+        if Value then
+            EnableAntiAFK()
+            OrionLib:MakeNotification({
+                Name = "Anti-AFK",
+                Content = "Anti-AFK has been enabled",
+                Image = "check",
+                Time = 3
+            })
+        else
+            DisableAntiAFK()
+            OrionLib:MakeNotification({
+                Name = "Anti-AFK",
+                Content = "Anti-AFK has been disabled",
+                Image = "close",
+                Time = 3
+            })
+        end
+    end
+})
+
+-- Settings Tab
+local SettingsTab = Window:MakeTab({
+    Name = "Settings",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+-- UI Theme Dropdown
+SettingsTab:AddDropdown({
+    Name = "UI Theme",
+    Default = "SkyX",
+    Flag = "UITheme",
+    Save = true,
+    Options = {"Default", "Dark", "Light", "Ocean", "Blood", "SkyX"},
+    Callback = function(Value)
+        OrionLib.Themes:SetTheme(Value)
+        OrionLib:MakeNotification({
+            Name = "Theme",
+            Content = "Theme set to " .. Value,
+            Image = "check",
+            Time = 3
+        })
+    end
+})
+
+-- Mobile Toggle Position
+SettingsTab:AddDropdown({
+    Name = "Mobile Toggle Position",
+    Default = "TopRight",
+    Flag = "MobileTogglePos",
+    Save = true,
+    Options = {"TopRight", "TopLeft", "BottomRight", "BottomLeft"},
+    Callback = function(Value)
+        OrionLib.Mobile:SetTogglePosition(Value)
+    end
+})
+
+-- Toggle Keybind
+SettingsTab:AddBind({
+    Name = "Toggle UI",
+    Default = Enum.KeyCode.RightControl,
+    Hold = false,
+    Flag = "ToggleUI",
+    Save = true,
+    Callback = function()
+        -- This is handled internally by the UI
+    end
+})
+
+-- Reset All Button
+SettingsTab:AddButton({
+    Name = "Reset All Settings",
+    Callback = function()
+        -- Reset toggle states first
+        for flag, _ in pairs(OrionLib.Flags) do
+            local toggle = OrionLib.Flags[flag]
+            if toggle.Type == "Toggle" then
+                toggle:Set(false)
+            end
+        end
+        
+        -- Reset Config values
+        Config = {
+            -- Entity ESP
+            EntityESP = false,
+            EntityESPColor = Color3.fromRGB(255, 0, 0),
+            EntityDistance = true,
+            
+            -- Player ESP
+            PlayerESP = false,
+            PlayerESPColor = Color3.fromRGB(0, 255, 0),
+            PlayerNames = true,
+            PlayerDistance = true,
+            PlayerHealth = true,
+            
+            -- Skin Changer
+            SkinChanger = false,
+            SelectedSkin = "Dawn",
+            CustomSkinEnabled = false,
+            CustomSkinProps = {
+                HeadColor = Color3.fromRGB(255, 204, 153),
+                TorsoColor = Color3.fromRGB(255, 0, 0),
+                LeftArmColor = Color3.fromRGB(255, 204, 153),
+                RightArmColor = Color3.fromRGB(255, 204, 153),
+                LeftLegColor = Color3.fromRGB(0, 0, 255),
+                RightLegColor = Color3.fromRGB(0, 0, 255),
+                HeadMaterial = Enum.Material.Plastic,
+                BodyMaterial = Enum.Material.Plastic
+            },
+            
+            -- Auto Features
+            AutoCollect = false,
+            AutoRevive = false,
+            
+            -- Character Mods
+            SpeedHack = false,
+            SpeedMultiplier = 2,
+            JumpHack = false,
+            JumpMultiplier = 2,
+            Fullbright = false,
+            NoCooldowns = false,
+            AntiRagdoll = false,
+            AutoCrouch = false,
+            
+            -- Protection
+            AntiAFK = true
+        }
+        
+        OrionLib:MakeNotification({
+            Name = "Reset",
+            Content = "All settings have been reset",
+            Image = "warning",
+            Time = 5
+        })
+    end
+})
+
+-- Credits Tab
+local CreditsTab = Window:MakeTab({
+    Name = "Credits",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+CreditsTab:AddParagraph("SkyX Hub", "Created by the SkyX Team")
+CreditsTab:AddParagraph("UI Library", "Using OrionX UI")
+CreditsTab:AddParagraph("Credits", "Thanks to all our users and supporters!")
+
+------------------
+-- FUNCTIONALITY
+------------------
+
+-- Variables
+local entityESPObjects = {}
+local playerESPObjects = {}
+local entityESPConnection = nil
+local playerESPConnection = nil
+local autoCollectConnection = nil
+local autoReviveConnection = nil
+local speedHackConnection = nil
+local jumpHackConnection = nil
+local antiRagdollConnection = nil
+local autoCrouchConnection = nil
+local antiAFKConnection = nil
+local originalLightingSettings = {
+    Brightness = Lighting.Brightness,
+    ClockTime = Lighting.ClockTime,
+    FogEnd = Lighting.FogEnd,
+    GlobalShadows = Lighting.GlobalShadows,
+    Ambient = Lighting.Ambient
+}
+
+-- Helper Functions
+function IsAlive(player)
+    if player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("Head") then
+        return player.Character.Humanoid.Health > 0
+    end
+    return false
+}
+
+function GetPlayerPosition()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        return LocalPlayer.Character.HumanoidRootPart.Position
+    end
+    return nil
+end
+
+function GetDistanceFromPlayer(position)
+    local playerPos = GetPlayerPosition()
+    if playerPos then
+        return (position - playerPos).Magnitude
+    end
+    return 0
+end
+
+-- Entity ESP Implementation
+function EnableEntityESP()
+    DisableEntityESP() -- Clear existing ESP
+    
+    -- Create ESP for all entities
+    for _, entity in pairs(GetEntities()) do
+        CreateEntityESP(entity)
+    end
+    
+    -- Connect to entity events
+    entityESPConnection = RunService.RenderStepped:Connect(function()
+        -- Continuously update entity ESP
+        UpdateEntityESP()
+    end)
+}
+
+function DisableEntityESP()
+    -- Disconnect events
+    if entityESPConnection then
+        entityESPConnection:Disconnect()
+        entityESPConnection = nil
+    end
+    
+    -- Remove ESP from all entities
+    for entityId, espItems in pairs(entityESPObjects) do
+        for _, item in pairs(espItems) do
+            if item and typeof(item) == "table" and item.Remove then
+                item:Remove()
+            end
+        end
+    end
+    
+    entityESPObjects = {}
+}
+
+function GetEntities()
+    local entities = {}
+    
+    -- Check for common entity folders in Evade
+    local entityFolders = {
+        workspace:FindFirstChild("Entities"),
+        workspace:FindFirstChild("Monsters"),
+        workspace:FindFirstChild("Bots"),
+        workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Entities")
+    }
+    
+    for _, folder in pairs(entityFolders) do
+        if folder then
+            for _, entity in pairs(folder:GetChildren()) do
+                if entity:IsA("Model") and entity:FindFirstChild("HumanoidRootPart") then
+                    table.insert(entities, entity)
+                end
+            end
+        end
+    end
+    
+    -- If no entities found in folders, try broader search
+    if #entities == 0 then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj:FindFirstChild("HumanoidRootPart") and obj:FindFirstChild("Humanoid") then
+                local humanoid = obj:FindFirstChild("Humanoid")
+                -- Check if this might be an entity (not a player)
+                if humanoid and humanoid.DisplayName and 
+                  (humanoid.DisplayName:match("Monster") or 
+                   humanoid.DisplayName:match("Bot") or 
+                   humanoid.DisplayName:match("Entity") or
+                   obj.Name:match("Rush") or
+                   obj.Name:match("Ambush") or
+                   obj.Name:match("Figure") or
+                   obj.Name:match("Seek")) then
+                    table.insert(entities, obj)
+                end
+            end
+        end
+    end
+    
+    return entities
+}
+
+function CreateEntityESP(entity)
+    -- Skip if we already have this entity
+    local entityId = entity:GetFullName()
+    if entityESPObjects[entityId] then
+        return
+    end
+    
+    entityESPObjects[entityId] = {}
+    
+    -- Create Box ESP
+    local boxESP = Drawing.new("Square")
+    boxESP.Visible = false
+    boxESP.Color = Config.EntityESPColor
+    boxESP.Thickness = 2
+    boxESP.Transparency = 1
+    boxESP.Filled = false
+    entityESPObjects[entityId].Box = boxESP
+    
+    -- Create Name ESP
+    local nameESP = Drawing.new("Text")
+    nameESP.Visible = false
+    nameESP.Color = Config.EntityESPColor
+    nameESP.Size = 18
+    nameESP.Center = true
+    nameESP.Outline = true
+    nameESP.Font = 2
+    nameESP.Text = entity.Name
+    entityESPObjects[entityId].Name = nameESP
+    
+    -- Create Distance ESP if enabled
+    if Config.EntityDistance then
+        local distanceESP = Drawing.new("Text")
+        distanceESP.Visible = false
+        distanceESP.Color = Config.EntityESPColor
+        distanceESP.Size = 16
+        distanceESP.Center = true
+        distanceESP.Outline = true
+        distanceESP.Font = 2
+        entityESPObjects[entityId].Distance = distanceESP
+    end
+}
+
+function UpdateEntityESP()
+    -- Find all current entities
+    local currentEntities = GetEntities()
+    
+    -- Create ESP for any new entities
+    for _, entity in pairs(currentEntities) do
+        if entity:FindFirstChild("HumanoidRootPart") then
+            local entityId = entity:GetFullName()
+            if not entityESPObjects[entityId] then
+                CreateEntityESP(entity)
+            end
+        end
+    end
+    
+    -- Update each entity's ESP
+    for entityId, espItems in pairs(entityESPObjects) do
+        local entity = game:FindFirstChild(entityId, true)
+        
+        if not entity or not entity:FindFirstChild("HumanoidRootPart") then
+            -- Entity no longer exists, remove ESP
+            for _, item in pairs(espItems) do
+                if item.Remove then
+                    item:Remove()
+                end
+            end
+            entityESPObjects[entityId] = nil
+            continue
+        end
+        
+        -- Calculate 3D position and size
+        local rootPart = entity:FindFirstChild("HumanoidRootPart")
+        local rootPos = rootPart.Position
+        
+        -- Add offset to get "head" position
+        local headPos = rootPos + Vector3.new(0, 2, 0)
+        local distance = GetDistanceFromPlayer(rootPos)
+        
+        -- Convert to screen position
+        local rootScreenPos, rootOnScreen = Workspace.CurrentCamera:WorldToScreenPoint(rootPos)
+        local headScreenPos, headOnScreen = Workspace.CurrentCamera:WorldToScreenPoint(headPos)
+        
+        if not rootOnScreen and not headOnScreen then
+            -- Entity is off screen, hide ESP
+            for _, item in pairs(espItems) do
+                item.Visible = false
+            end
+            continue
+        end
+        
+        -- Calculate box size based on entity size and distance
+        local boxSize = headScreenPos.Y - rootScreenPos.Y
+        local boxWidth = boxSize / 2
+        
+        -- Update Box ESP
+        local box = espItems.Box
+        box.Size = Vector2.new(boxWidth, boxSize)
+        box.Position = Vector2.new(rootScreenPos.X - boxWidth / 2, rootScreenPos.Y - boxSize / 2)
+        box.Color = Config.EntityESPColor
+        box.Visible = true
+        
+        -- Update Name ESP
+        local nameESP = espItems.Name
+        nameESP.Position = Vector2.new(headScreenPos.X, headScreenPos.Y - 25)
+        nameESP.Color = Config.EntityESPColor
+        nameESP.Text = entity.Name
+        nameESP.Visible = true
+        
+        -- Update Distance ESP
+        if Config.EntityDistance and espItems.Distance then
+            local distanceESP = espItems.Distance
+            distanceESP.Position = Vector2.new(rootScreenPos.X, rootScreenPos.Y + 15)
+            distanceESP.Color = Config.EntityESPColor
+            distanceESP.Text = math.floor(distance) .. " studs"
+            distanceESP.Visible = true
+        end
+    end
+}
+
+-- Player ESP Implementation
+function EnablePlayerESP()
+    DisablePlayerESP() -- Clear existing ESP
+    
+    -- Create ESP for all players
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            CreatePlayerESP(player)
+        end
+    end
+    
+    -- Connect events for new players
+    playerESPConnection = Players.PlayerAdded:Connect(function(player)
+        CreatePlayerESP(player)
+    end)
+    
+    -- Update ESP periodically to reflect position and health changes
+    RunService:BindToRenderStep("PlayerESP", 5, function()
+        UpdatePlayerESP()
+    end)
+}
+
+function DisablePlayerESP()
+    -- Disconnect events
+    if playerESPConnection then
+        playerESPConnection:Disconnect()
+        playerESPConnection = nil
+    end
+    
+    -- Unbind render step
+    pcall(function()
+        RunService:UnbindFromRenderStep("PlayerESP")
+    end)
+    
+    -- Remove ESP from all players
+    for playerName, espItems in pairs(playerESPObjects) do
+        for _, item in pairs(espItems) do
+            if item and typeof(item) == "table" and item.Remove then
+                item:Remove()
+            end
+        end
+    end
+    
+    playerESPObjects = {}
+}
+
+function CreatePlayerESP(player)
+    -- Skip if we already have this player
+    if playerESPObjects[player.Name] then
+        return
+    end
+    
+    playerESPObjects[player.Name] = {}
+    
+    -- Create Box ESP
+    local boxESP = Drawing.new("Square")
+    boxESP.Visible = false
+    boxESP.Color = Config.PlayerESPColor
+    boxESP.Thickness = 1
+    boxESP.Transparency = 1
+    boxESP.Filled = false
+    playerESPObjects[player.Name].Box = boxESP
+    
+    -- Create Name ESP if enabled
+    if Config.PlayerNames then
+        local nameESP = Drawing.new("Text")
+        nameESP.Visible = false
+        nameESP.Color = Config.PlayerESPColor
+        nameESP.Size = 18
+        nameESP.Center = true
+        nameESP.Outline = true
+        nameESP.Font = 2
+        nameESP.Text = player.Name
+        playerESPObjects[player.Name].Name = nameESP
+    end
+    
+    -- Create Distance ESP if enabled
+    if Config.PlayerDistance then
+        local distanceESP = Drawing.new("Text")
+        distanceESP.Visible = false
+        distanceESP.Color = Config.PlayerESPColor
+        distanceESP.Size = 16
+        distanceESP.Center = true
+        distanceESP.Outline = true
+        distanceESP.Font = 2
+        playerESPObjects[player.Name].Distance = distanceESP
+    end
+    
+    -- Create Health ESP if enabled
+    if Config.PlayerHealth then
+        local healthESP = Drawing.new("Line")
+        healthESP.Visible = false
+        healthESP.Color = Color3.fromRGB(0, 255, 0)
+        healthESP.Thickness = 2
+        playerESPObjects[player.Name].Health = healthESP
+    end
+}
+
+function UpdatePlayerESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and playerESPObjects[player.Name] then
+            local character = player.Character
+            if not character or not IsAlive(player) then
+                for _, item in pairs(playerESPObjects[player.Name]) do
+                    item.Visible = false
+                end
+                continue
+            end
+            
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            local head = character:FindFirstChild("Head")
+            local humanoid = character:FindFirstChild("Humanoid")
+            
+            if not rootPart or not head or not humanoid then
+                for _, item in pairs(playerESPObjects[player.Name]) do
+                    item.Visible = false
+                end
+                continue
+            end
+            
+            -- Calculate 3D position and size
+            local rootPos = rootPart.Position
+            local headPos = head.Position + Vector3.new(0, 0.5, 0)
+            local distance = (rootPos - GetPlayerPosition()).Magnitude
+            
+            -- Convert to screen position
+            local rootScreenPos, rootOnScreen = Workspace.CurrentCamera:WorldToScreenPoint(rootPos)
+            local headScreenPos, headOnScreen = Workspace.CurrentCamera:WorldToScreenPoint(headPos)
+            
+            if not rootOnScreen and not headOnScreen then
+                for _, item in pairs(playerESPObjects[player.Name]) do
+                    item.Visible = false
+                end
+                continue
+            end
+            
+            -- Calculate box size based on character size
+            local boxSize = headScreenPos.Y - rootScreenPos.Y
+            local boxWidth = boxSize / 2
+            
+            -- Update Box ESP
+            local box = playerESPObjects[player.Name].Box
+            box.Size = Vector2.new(boxWidth, boxSize)
+            box.Position = Vector2.new(rootScreenPos.X - boxWidth / 2, rootScreenPos.Y - boxSize / 2)
+            box.Color = Config.PlayerESPColor
+            box.Visible = true
+            
+            -- Update Name ESP
+            if Config.PlayerNames and playerESPObjects[player.Name].Name then
+                local nameESP = playerESPObjects[player.Name].Name
+                nameESP.Position = Vector2.new(headScreenPos.X, headScreenPos.Y - 25)
+                nameESP.Color = Config.PlayerESPColor
+                nameESP.Text = player.Name
+                nameESP.Visible = true
+            end
+            
+            -- Update Distance ESP
+            if Config.PlayerDistance and playerESPObjects[player.Name].Distance then
+                local distanceESP = playerESPObjects[player.Name].Distance
+                distanceESP.Position = Vector2.new(rootScreenPos.X, rootScreenPos.Y + 15)
+                distanceESP.Color = Config.PlayerESPColor
+                distanceESP.Text = math.floor(distance) .. " studs"
+                distanceESP.Visible = true
+            end
+            
+            -- Update Health ESP
+            if Config.PlayerHealth and playerESPObjects[player.Name].Health then
+                local healthESP = playerESPObjects[player.Name].Health
+                local healthPct = humanoid.Health / humanoid.MaxHealth
+                
+                healthESP.From = Vector2.new(rootScreenPos.X - boxWidth / 2 - 5, rootScreenPos.Y - boxSize / 2)
+                healthESP.To = Vector2.new(rootScreenPos.X - boxWidth / 2 - 5, rootScreenPos.Y - boxSize / 2 + boxSize * healthPct)
+                
+                -- Gradient color based on health
+                healthESP.Color = Color3.fromRGB(
+                    255 * (1 - healthPct),
+                    255 * healthPct,
+                    0
+                )
+                
+                healthESP.Visible = true
+            end
+        end
+    end
+}
+
+-- Skin Changer Implementation
+function EnableSkinChanger()
+    -- Connect to character added event to apply skin whenever character respawns
+    skinChangerConnection = LocalPlayer.CharacterAdded:Connect(function(character)
+        task.wait(1) -- Wait for character to fully load
+        if Config.SkinChanger then
+            if Config.CustomSkinEnabled then
+                EnableCustomSkin()
+            else
+                ChangeSkin(Config.SelectedSkin)
+            end
+        end
+    end)
+    
+    -- Apply skin to current character
+    if LocalPlayer.Character then
+        if Config.CustomSkinEnabled then
+            EnableCustomSkin()
+        else
+            ChangeSkin(Config.SelectedSkin)
+        end
+    end
+}
+
+function DisableSkinChanger()
+    if skinChangerConnection then
+        skinChangerConnection:Disconnect()
+        skinChangerConnection = nil
+    end
+    
+    -- Restore original appearance (requires rejoining to fully reset)
+    local character = LocalPlayer.Character
+    if character then
+        -- Try to reset character appearance
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            for _, item in pairs(humanoid:GetChildren()) do
+                if item:IsA("NumberValue") and item.Name == "HumanoidDescription" then
+                    item:Destroy()
+                end
+            end
+        end
+    end
+}
+
+function ChangeSkin(skinName)
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    -- Try to find the skin model
+    local skinModel = nil
+    local skinFolder = ReplicatedStorage:FindFirstChild("Skins") or 
+                       ReplicatedStorage:FindFirstChild("Characters") or
+                       ReplicatedStorage:FindFirstChild("PlayerModels")
+                      
+    if skinFolder then
+        skinModel = skinFolder:FindFirstChild(skinName)
+    end
+    
+    if not skinModel then
+        -- Try to find it directly in ReplicatedStorage
+        skinModel = ReplicatedStorage:FindFirstChild(skinName)
+    end
+    
+    if not skinModel then
+        -- Try to find it in workspace
+        skinModel = workspace:FindFirstChild(skinName, true)
+    end
+    
+    if not skinModel then
+        OrionLib:MakeNotification({
+            Name = "Skin Changer",
+            Content = "Could not find skin model: " .. skinName,
+            Image = "warning",
+            Time = 3
+        })
+        return
+    end
+    
+    -- Apply the skin by changing appearance
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then return end
+    
+    -- Method 1: Clone parts from the model
+    for _, part in pairs(character:GetChildren()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            -- Find corresponding part in skin model
+            local skinPart = skinModel:FindFirstChild(part.Name)
+            if skinPart and skinPart:IsA("BasePart") then
+                -- Copy appearance (not size/position to avoid breaking character)
+                part.Color = skinPart.Color
+                part.Material = skinPart.Material
+                part.Transparency = skinPart.Transparency
+                
+                -- Copy textures if any
+                for _, texture in pairs(skinPart:GetChildren()) do
+                    if texture:IsA("Texture") or texture:IsA("Decal") then
+                        local existingTexture = part:FindFirstChild(texture.Name)
+                        if existingTexture then
+                            existingTexture:Destroy()
+                        end
+                        local newTexture = texture:Clone()
+                        newTexture.Parent = part
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Method 2: Try to use game's skin changing system
+    -- Find any remote events for changing appearance
+    local changeAppearanceRemote = ReplicatedStorage:FindFirstChild("ChangeAppearance") or
+                                  ReplicatedStorage:FindFirstChild("ChangeSkin") or
+                                  ReplicatedStorage:FindFirstChild("ApplySkin")
+    
+    if changeAppearanceRemote then
+        changeAppearanceRemote:FireServer(skinName)
+    end
+    
+    -- Special case for specific games
+    -- Try to access Evade-specific modules and change skin that way
+    for _, obj in pairs(getgc(true)) do
+        if type(obj) == "table" and rawget(obj, "ChangeSkin") then
+            obj.ChangeSkin(skinName)
+            break
+        end
+    end
+    
+    OrionLib:MakeNotification({
+        Name = "Skin Changer",
+        Content = "Applied skin: " .. skinName,
+        Image = "check",
+        Time = 3
+    })
+}
+
+function EnableCustomSkin()
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    -- Apply custom colors and materials to each part
+    local head = character:FindFirstChild("Head")
+    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+    local leftArm = character:FindFirstChild("Left Arm") or character:FindFirstChild("LeftUpperArm")
+    local rightArm = character:FindFirstChild("Right Arm") or character:FindFirstChild("RightUpperArm")
+    local leftLeg = character:FindFirstChild("Left Leg") or character:FindFirstChild("LeftUpperLeg")
+    local rightLeg = character:FindFirstChild("Right Leg") or character:FindFirstChild("RightUpperLeg")
+    
+    -- Apply colors and materials to parts
+    if head then
+        head.Color = Config.CustomSkinProps.HeadColor
+        head.Material = Config.CustomSkinProps.HeadMaterial
+    end
+    
+    if torso then
+        torso.Color = Config.CustomSkinProps.TorsoColor
+        torso.Material = Config.CustomSkinProps.BodyMaterial
+    end
+    
+    if leftArm then
+        leftArm.Color = Config.CustomSkinProps.LeftArmColor
+        leftArm.Material = Config.CustomSkinProps.BodyMaterial
+    end
+    
+    if rightArm then
+        rightArm.Color = Config.CustomSkinProps.RightArmColor
+        rightArm.Material = Config.CustomSkinProps.BodyMaterial
+    end
+    
+    if leftLeg then
+        leftLeg.Color = Config.CustomSkinProps.LeftLegColor
+        leftLeg.Material = Config.CustomSkinProps.BodyMaterial
+    end
+    
+    if rightLeg then
+        rightLeg.Color = Config.CustomSkinProps.RightLegColor
+        rightLeg.Material = Config.CustomSkinProps.BodyMaterial
+    end
+    
+    -- For R15 rigs, need to handle additional parts
+    for _, part in pairs(character:GetChildren()) do
+        if part:IsA("BasePart") and part.Name:find("Lower") then
+            if part.Name:find("Leg") then
+                part.Color = part.Name:find("Left") and Config.CustomSkinProps.LeftLegColor or Config.CustomSkinProps.RightLegColor
+            elseif part.Name:find("Arm") then
+                part.Color = part.Name:find("Left") and Config.CustomSkinProps.LeftArmColor or Config.CustomSkinProps.RightArmColor
+            end
+            part.Material = Config.CustomSkinProps.BodyMaterial
+        end
+    end
+    
+    OrionLib:MakeNotification({
+        Name = "Custom Skin",
+        Content = "Applied custom skin",
+        Image = "check",
+        Time = 3
+    })
+}
+
+function DisableCustomSkin()
+    -- Just disable the flag, actual removal requires rejoining
+    Config.CustomSkinEnabled = false
+}
+
+function UpdateCustomSkin()
+    if Config.CustomSkinEnabled then
+        EnableCustomSkin()
+    end
+}
+
+-- Auto Collect Implementation
+function EnableAutoCollect()
+    if autoCollectConnection then
+        autoCollectConnection:Disconnect()
+    end
+    
+    autoCollectConnection = RunService.Heartbeat:Connect(function()
+        if not Config.AutoCollect then return end
+        
+        -- Find and collect items
+        CollectNearbyItems()
+        
+        -- Short delay to prevent overwhelming
+        task.wait(0.5)
+    end)
+}
+
+function DisableAutoCollect()
+    if autoCollectConnection then
+        autoCollectConnection:Disconnect()
+        autoCollectConnection = nil
+    end
+}
+
+function CollectNearbyItems()
+    local playerPos = GetPlayerPosition()
+    if not playerPos then return end
+    
+    -- Search for items in the workspace
+    for _, item in pairs(workspace:GetDescendants()) do
+        if (item:IsA("Part") or item:IsA("Model")) and 
+           (item.Name:find("Coin") or 
+            item.Name:find("Item") or 
+            item.Name:find("Pickup") or 
+            item.Name:find("Collect")) then
+            
+            local itemPos = nil
+            if item:IsA("Part") then
+                itemPos = item.Position
+            elseif item:IsA("Model") and item.PrimaryPart then
+                itemPos = item.PrimaryPart.Position
+            end
+            
+            if itemPos and (itemPos - playerPos).Magnitude < 20 then
+                -- Try to find the collect remote
+                local collectRemote = ReplicatedStorage:FindFirstChild("CollectItem") or
+                                   ReplicatedStorage:FindFirstChild("Collect") or
+                                   ReplicatedStorage:FindFirstChild("PickupItem")
+                
+                -- If found, fire the remote
+                if collectRemote then
+                    collectRemote:FireServer(item)
+                else
+                    -- Alternative method: teleport to the item briefly
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        local originalPos = LocalPlayer.Character.HumanoidRootPart.CFrame
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(itemPos)
+                        task.wait(0.1)
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = originalPos
+                    end
+                end
+            end
+        end
+    end
+}
+
+-- Auto Revive Implementation
+function EnableAutoRevive()
+    if autoReviveConnection then
+        autoReviveConnection:Disconnect()
+    end
+    
+    autoReviveConnection = RunService.Heartbeat:Connect(function()
+        if not Config.AutoRevive then return end
+        
+        -- Find and revive downed teammates
+        ReviveDownedTeammates()
+        
+        -- Short delay to prevent overwhelming
+        task.wait(0.5)
+    end)
+}
+
+function DisableAutoRevive()
+    if autoReviveConnection then
+        autoReviveConnection:Disconnect()
+        autoReviveConnection = nil
+    end
+}
+
+function ReviveDownedTeammates()
+    local playerPos = GetPlayerPosition()
+    if not playerPos then return end
+    
+    -- Find downed players
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local humanoid = player.Character:FindFirstChild("Humanoid")
+            local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+            
+            -- Check if player is downed (based on common methods in Evade)
+            local isDowned = false
+            
+            if humanoid and humanoid.Health > 0 and humanoid.Health < 10 then
+                isDowned = true
+            end
+            
+            -- Check for downed flag or animation
+            if player.Character:FindFirstChild("Downed") or 
+               (humanoid and humanoid:GetState() == Enum.HumanoidStateType.Physics) then
+                isDowned = true
+            end
+            
+            if isDowned and rootPart and (rootPart.Position - playerPos).Magnitude < 10 then
+                -- Try to find revive remote
+                local reviveRemote = ReplicatedStorage:FindFirstChild("RevivePlayer") or
+                                  ReplicatedStorage:FindFirstChild("Revive") or
+                                  ReplicatedStorage:FindFirstChild("ReviveRemote")
+                
+                if reviveRemote then
+                    reviveRemote:FireServer(player)
+                    
+                    OrionLib:MakeNotification({
+                        Name = "Auto Revive",
+                        Content = "Reviving " .. player.Name,
+                        Image = "check",
+                        Time = 1
+                    })
+                    
+                    -- Add delay to prevent spam
+                    task.wait(2)
+                end
+            end
+        end
+    end
+}
+
+-- Fullbright Implementation
+function EnableFullbright()
+    -- Store original lighting settings
+    originalLightingSettings = {
+        Brightness = Lighting.Brightness,
+        ClockTime = Lighting.ClockTime,
+        FogEnd = Lighting.FogEnd,
+        GlobalShadows = Lighting.GlobalShadows,
+        Ambient = Lighting.Ambient
+    }
+    
+    -- Apply fullbright settings
+    Lighting.Brightness = 2
+    Lighting.ClockTime = 14
+    Lighting.FogEnd = 100000
+    Lighting.GlobalShadows = false
+    Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+    
+    -- Remove any lighting effects
+    for _, effect in pairs(Lighting:GetChildren()) do
+        if effect:IsA("BloomEffect") or 
+           effect:IsA("BlurEffect") or 
+           effect:IsA("ColorCorrectionEffect") or 
+           effect:IsA("SunRaysEffect") then
+            effect.Enabled = false
+        end
+    end
+}
+
+function DisableFullbright()
+    -- Restore original lighting settings
+    Lighting.Brightness = originalLightingSettings.Brightness
+    Lighting.ClockTime = originalLightingSettings.ClockTime
+    Lighting.FogEnd = originalLightingSettings.FogEnd
+    Lighting.GlobalShadows = originalLightingSettings.GlobalShadows
+    Lighting.Ambient = originalLightingSettings.Ambient
+    
+    -- Re-enable lighting effects
+    for _, effect in pairs(Lighting:GetChildren()) do
+        if effect:IsA("BloomEffect") or 
+           effect:IsA("BlurEffect") or 
+           effect:IsA("ColorCorrectionEffect") or 
+           effect:IsA("SunRaysEffect") then
+            effect.Enabled = true
+        end
+    end
+}
+
+-- No Cooldowns Implementation
+function EnableNoCooldowns()
+    -- Hook any cooldown functions through metatable
+    local mt = getrawmetatable(game)
+    local oldIndex = mt.__index
+    
+    if setreadonly then
+        setreadonly(mt, false)
+    end
+    
+    mt.__index = newcclosure(function(self, key)
+        if Config.NoCooldowns then
+            -- Check for common cooldown properties
+            if key == "Cooldown" or key == "Cooldowns" or key == "CooldownTime" or key == "Debounce" then
+                return 0
+            end
+        end
+        
+        return oldIndex(self, key)
+    end)
+    
+    if setreadonly then
+        setreadonly(mt, true)
+    end
+    
+    -- Also try to directly modify cooldown values
+    for _, obj in pairs(getgc(true)) do
+        if type(obj) == "table" then
+            for key, value in pairs(obj) do
+                if (key == "Cooldown" or key == "CooldownTime" or key == "Debounce") and type(value) == "number" then
+                    obj[key] = 0
+                end
+            end
+        end
+    end
+}
+
+function DisableNoCooldowns()
+    -- We can't fully restore the metatable after hooking
+    -- But we can set the flag to false so our hook won't do anything
+    Config.NoCooldowns = false
+}
+
+-- Anti-Ragdoll Implementation
+function EnableAntiRagdoll()
+    if antiRagdollConnection then
+        antiRagdollConnection:Disconnect()
+    end
+    
+    -- Hook into the character to prevent ragdolling
+    antiRagdollConnection = RunService.Heartbeat:Connect(function()
+        if not Config.AntiRagdoll then return end
+        
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        local humanoid = character:FindFirstChild("Humanoid")
+        if not humanoid then return end
+        
+        -- Prevent ragdoll by forcing normal state
+        if humanoid:GetState() == Enum.HumanoidStateType.Physics then
+            humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+        
+        -- Disable any ragdoll scripts or values
+        for _, obj in pairs(character:GetChildren()) do
+            if obj.Name == "Ragdoll" or obj.Name == "RagdollConstraints" then
+                obj:Destroy()
+            end
+        end
+    end)
+}
+
+function DisableAntiRagdoll()
+    if antiRagdollConnection then
+        antiRagdollConnection:Disconnect()
+        antiRagdollConnection = nil
+    end
+}
+
+-- Auto Crouch Implementation
+function EnableAutoCrouch()
+    if autoCrouchConnection then
+        autoCrouchConnection:Disconnect()
+    end
+    
+    autoCrouchConnection = RunService.Heartbeat:Connect(function()
+        if not Config.AutoCrouch then return end
+        
+        local character = LocalPlayer.Character
+        local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+        local humanoid = character and character:FindFirstChild("Humanoid")
+        
+        if not rootPart or not humanoid then return end
+        
+        -- Check for nearby entities
+        local nearbyEntity = false
+        for _, entity in pairs(GetEntities()) do
+            if entity:FindFirstChild("HumanoidRootPart") then
+                local distance = (entity.HumanoidRootPart.Position - rootPart.Position).Magnitude
+                if distance < 20 then
+                    nearbyEntity = true
+                    break
+                end
+            end
+        end
+        
+        -- Auto crouch when entity is nearby
+        if nearbyEntity then
+            -- Different games have different crouch methods
+            -- Method 1: Using Humanoid state
+            humanoid.Sit = true
+            
+            -- Method 2: Using remote events
+            local crouchRemote = ReplicatedStorage:FindFirstChild("Crouch") or
+                               ReplicatedStorage:FindFirstChild("CrouchEvent")
+                               
+            if crouchRemote then
+                crouchRemote:FireServer(true)
+            end
+            
+            -- Method 3: Using character controller module
+            for _, obj in pairs(getgc(true)) do
+                if type(obj) == "table" and rawget(obj, "Crouch") then
+                    obj.Crouch(true)
+                    break
+                end
+            end
+        end
+    end)
+}
+
+function DisableAutoCrouch()
+    if autoCrouchConnection then
+        autoCrouchConnection:Disconnect()
+        autoCrouchConnection = nil
+    end
+    
+    -- Make sure player is not stuck crouching
+    local character = LocalPlayer.Character
+    local humanoid = character and character:FindFirstChild("Humanoid")
+    
+    if humanoid then
+        humanoid.Sit = false
+    end
+}
+
+-- Speed Hack Implementation
+function EnableSpeedHack()
+    UpdateSpeedHack()
+    
+    -- Connect to character added event
+    speedHackConnection = LocalPlayer.CharacterAdded:Connect(function(character)
+        if Config.SpeedHack then
+            task.wait(0.5)
+            UpdateSpeedHack()
+        end
+    end)
+}
+
+function DisableSpeedHack()
+    if speedHackConnection then
+        speedHackConnection:Disconnect()
+        speedHackConnection = nil
+    end
+    
+    -- Reset walkspeed
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = 16
+    end
+}
+
+function UpdateSpeedHack()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = 16 * Config.SpeedMultiplier
+    end
+}
+
+-- Jump Hack Implementation
+function EnableJumpHack()
+    UpdateJumpHack()
+    
+    -- Connect to character added event
+    jumpHackConnection = LocalPlayer.CharacterAdded:Connect(function(character)
+        if Config.JumpHack then
+            task.wait(0.5)
+            UpdateJumpHack()
+        end
+    end)
+}
+
+function DisableJumpHack()
+    if jumpHackConnection then
+        jumpHackConnection:Disconnect()
+        jumpHackConnection = nil
+    end
+    
+    -- Reset jump power
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.JumpPower = 50
+    end
+}
+
+function UpdateJumpHack()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.JumpPower = 50 * Config.JumpMultiplier
+    end
+}
+
+-- Teleport Implementation
+function TeleportToSafeZone(zoneName)
+    -- Try to find the safe zone
+    local safeZone = nil
+    
+    -- Look in different possible locations
+    local mapFolder = workspace:FindFirstChild("Map") or
+                     workspace:FindFirstChild(mapName) or
+                     workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Map")
+    
+    if mapFolder then
+        -- Look for the named zone
+        for _, obj in pairs(mapFolder:GetDescendants()) do
+            if obj.Name:lower():find(zoneName:lower()) and 
+               (obj:IsA("BasePart") or obj:IsA("Model")) then
+                safeZone = obj
+                break
+            end
+        end
+    end
+    
+    -- If still not found, search the whole workspace
+    if not safeZone then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj.Name:lower():find(zoneName:lower()) and 
+               (obj:IsA("BasePart") or obj:IsA("Model")) then
+                safeZone = obj
+                break
+            end
+        end
+    end
+    
+    -- If safe zone found, teleport to it
+    if safeZone and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetCFrame = nil
+        
+        if safeZone:IsA("BasePart") then
+            targetCFrame = safeZone.CFrame + Vector3.new(0, 3, 0)
+        elseif safeZone:IsA("Model") and safeZone.PrimaryPart then
+            targetCFrame = safeZone.PrimaryPart.CFrame + Vector3.new(0, 3, 0)
+        else
+            -- Find a suitable part to teleport to
+            for _, part in pairs(safeZone:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    targetCFrame = part.CFrame + Vector3.new(0, 3, 0)
+                    break
+                end
+            end
+        end
+        
+        if targetCFrame then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = targetCFrame
+            
+            OrionLib:MakeNotification({
+                Name = "Teleport",
+                Content = "Teleported to " .. zoneName,
+                Image = "teleport",
+                Time = 3
+            })
+        else
+            OrionLib:MakeNotification({
+                Name = "Teleport",
+                Content = "Found zone but couldn't determine teleport position",
+                Image = "warning",
+                Time = 3
+            })
+        end
+    else
+        OrionLib:MakeNotification({
+            Name = "Teleport",
+            Content = "Could not find zone: " .. zoneName,
+            Image = "warning",
+            Time = 3
+        })
+    end
+}
+
+-- Anti-AFK Implementation
+function EnableAntiAFK()
+    if antiAFKConnection then
+        antiAFKConnection:Disconnect()
+    end
+    
+    antiAFKConnection = LocalPlayer.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+        
+        OrionLib:MakeNotification({
+            Name = "Anti-AFK",
+            Content = "Prevented AFK kick",
+            Image = "check",
+            Time = 3
+        })
+    end)
+}
+
+function DisableAntiAFK()
+    if antiAFKConnection then
+        antiAFKConnection:Disconnect()
+        antiAFKConnection = nil
+    end
+}
+
+-- Initialize features based on saved settings
+if Config.AntiAFK then
+    EnableAntiAFK()
+end
+
+-- Initialize the UI
+OrionLib:Init()
